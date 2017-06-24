@@ -1,0 +1,83 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.lanqiao.bank.base.dao.UserConsultationDao">
+	<!-- 根据编号查询用户咨询信息 -->
+	<select id="getUserConSultationById"  parameterType="java.lang.Integer" resultMap="basicConsultMap">
+		SELECT id,user_id,comment,consultationtime,replaystate 
+		FROM userconsultation
+		WHERE id=#{id}
+	</select>
+	
+	<!-- 根据是否已回复查询一页用户咨询信息 -->
+	<select id="getUserConSultationReplaystate"  parameterType="org.lanqiao.bank.base.util.PageUtil" resultMap="basicConsultMap">
+		SELECT id,user_id,comment,consultationtime,replaystate 
+		FROM userconsultation
+		WHERE replaystate = 0
+		LIMIT #{begin},#{offset}
+	</select>
+	
+	<!-- 根据用户的ID查询用户咨询 -->
+	<select id="getUserConsultationByUserID"  parameterType="java.lang.Integer" resultMap="basicConsultMap">
+		SELECT id,user_id,comment,consultationtime,replaystate 
+		FROM userconsultation
+		WHERE user_id=#{user.id}
+	</select>
+	
+	<!-- 通过user的ID查询一页用户咨询内容 -->
+	<select id="getOnePageUserConSultationByUserId" resultMap="basicConsultMap">
+		select id,user_id,comment,consultationtime,replaystate from userconsultation where user_id=#{userId}
+		limit #{begin},#{offset}
+	</select>
+	
+	<!-- 根据是否已回复查询用户咨询信息 -->
+	<select id="getAllUserConSultationReplaystate"   resultMap="basicConsultMap">
+		SELECT id,user_id,comment,consultationtime,replaystate 
+		FROM userconsultation
+		WHERE replaystate = 0
+	</select>
+	
+	<!-- 根据编号删除用户咨询 -->
+	<delete id="deleteUserConsultation">
+		DELETE FROM userconsultation WHERE id=#{id}
+	</delete>
+
+	<!-- 加入一个用户咨询 -->
+	<insert id="insertUserConsultation" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO userconsultation values(default,#{user.id},#{comment},#{consultationtime},#{replaystate})
+	</insert>
+	
+	<!-- 根据用户ID添加一个用户咨询 -->
+	<insert id="insertUserConsultationByUserId" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO userconsultation values(default,#{user.id},#{comment},#{consultationtime},#{replaystate}) where user_id=#{user.id}
+	</insert>
+	
+	<!-- 更新用户咨询 -->
+	<update id="updateUserConsultation">
+		update  userconsultation 
+		SET 
+		id=#{id},user_id=#{user.id},comment=#{comment},consultationtime=#{consultationtime},replaystate=#{replaystate}
+		where id=#{id}
+	</update>
+	<select id="getAllConsult" parameterType="org.lanqiao.bank.base.util.PageUtil"
+		resultMap="basicConsultMap">
+		SELECT * from userconsultation limit #{begin},#{offset}
+	</select>
+	<select id="getAll" resultMap="basicConsultMap">
+		select id,user_id,comment,consultationtime,replaystate from userconsultation
+	</select>
+	<select id="getAUserConsultation" parameterType="integer" resultMap="basicConsultMap">
+		select * from userconsultation where id=#{id}
+	</select>
+	<resultMap type="org.lanqiao.bank.base.entity.UserConsultation" id="basicConsultMap">
+		<id property="id" column="id"/>
+		<result property="comment" column="comment"/>
+		<result property="consultationtime" column="consultationtime"/>
+		<result property="replaystate" column="replaystate"/>
+		<association property="user" column="user_id" select="org.lanqiao.bank.base.dao.UserDao.selectUserById"></association>
+		<collection property="customerReplays" column="id" select="org.lanqiao.bank.base.dao.CustomerReplayDao.selectCustomerReplayByConsultIdTwo"></collection>
+		<!-- <association property="customerReplays" column="id" select="org.lanqiao.bank.base.dao.CustomerReplayDao.selectCustomerReplayByUserConsultationID"></association> -->
+	</resultMap>
+	
+	
+</mapper>

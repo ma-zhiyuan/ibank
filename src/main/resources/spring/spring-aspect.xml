@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.1.xsd">
+
+	<!-- 自动生成代理对象 -->
+	<aop:aspectj-autoproxy></aop:aspectj-autoproxy>
+	
+	<!-- 切面Bean -->
+	<bean class="org.lanqiao.bank.base.aspect.CommontCheckLoginAspect" id="commontCheckLoginAspect"></bean>
+	
+	<!-- aop配置 -->
+	<aop:config>
+		<!-- 此处具体配置 -->
+	</aop:config>
+</beans>

@@ -1,0 +1,32 @@
+项目编程和目录结构规范：
+
+1、资源结构介绍
+	src/main/java --源码资源包
+	src/main/resource --源码配置文件资源包
+	src/test/java --测试资源包
+
+2、项目包结构介绍
+	org.lanqiao.bank.base.util	--基础包（可供各个模块使用）
+	org.lanqiao.bank.base.entity
+	...
+	
+	org.lanqiao.bank.dao.user	--可能和以前的定义不同（为了方便扫描）
+	org.lanqiao.bank.controller.user
+	...
+
+3、命名规范：
+	常见后缀：Dao Controller Service Listener Filter ...
+	
+4、前端有关链接（如：超链接，图片，表单提交等）需要加入前缀：${basepath}/
+
+5、上传SVN条件：
+	功能完整
+	上传注释：完成功能介绍
+
+6、添加POM依赖或修改配置文件需要添加相关注释
+
+7、添加数据表禁止采用客户端直接创建，需要手动编写，编写规范：
+	大模块表添加到统一sql文件
+	需要谢注释见：/lanqiaobank/src/main/resources/sql/demo/demo.sql
+	
+8、MD5加密算法使用：org.springframework.util.DigestUtils

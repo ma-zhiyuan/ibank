@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.lanqiao.bank.base.dao.RateDao">
+<select
+	id="selectByRateId" parameterType="java.lang.Integer"
+		resultType="org.lanqiao.bank.base.entity.Rate">
+		select * from card_rate 
+	</select>
+
+	<update id="updateRateByRateId" parameterType="java.lang.Integer"
+	  >
+		update card_rate
+		<set>
+			<if test="record.rate != null">
+				rate = #{record.rate,jdbcType=DOUBLE}
+			</if>
+		</set>
+	   where id = #{id,jdbcType=INTEGER}
+	</update>
+</mapper>

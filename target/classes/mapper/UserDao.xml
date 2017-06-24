@@ -1,0 +1,180 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.lanqiao.bank.base.dao.UserDao">
+	<resultMap type="org.lanqiao.bank.base.entity.Card" id="aUserAllCard">
+		<id property="id" column="id" />
+		<result property="number" column="number" />
+		<result property="balance" column="balance" />
+		<result property="bankId" column="bank_id" />
+		<result property="userId" column="user_id" />
+	</resultMap>
+	<select id="showAUserAllCard" parameterType="org.lanqiao.bank.base.entity.User"
+		resultMap="aUserAllCard">
+		select * from card where user_id=#{id}
+	</select>
+	<select id="seletUserByName" parameterType="String" resultType="User">
+		select
+		id,name,age,gender,address, phone,birthplace,birthday,password,
+		photo,nickname, email from user where name=#{name}
+	</select>
+
+	<select id="getAllUser" resultType="User">
+		select
+		id,name,age,gender,address, phone,birthplace,birthday,password,
+		photo,nickname, email from user
+	</select>
+
+	<insert id="insertUser" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO
+		user(id,name,age,gender,address,phone,birthplace,birthday,password,photo,nickname,email)
+		VALUES
+		(default, #{name}, #{age}, #{gender}, #{address},
+		#{phone},
+		#{birthplace},
+		#{birthday}, #{password}, #{photo},
+		#{nickname},
+		#{email})
+	</insert>
+
+	<delete id="deleteUserById">
+		DELETE FROM
+		user
+		WHERE
+		id = #{id}
+	</delete>
+	<update id="setState" parameterType="Integer">
+		update
+		user
+		set state=0
+		where
+		id=#{id}
+	</update>
+
+	<update id="updateUserById">
+		UPDATE
+		user
+		SET
+		name = #{name},
+		age = #{age},
+		gender =
+		#{gender},
+		photo=#{photo},
+		address = #{address},
+		phone = #{phone},
+		birthplace =
+		#{birthplace},
+		birthday = #{birthday},
+		password =
+		#{password},
+		nickname =
+		#{nickname},
+		email = #{email},
+		validataCode
+		=#{validataCode}
+		where
+		id = #{id}
+	</update>
+
+	<select id="selectUserById" resultMap="basicUserMap">
+		SELECT
+		id, name, gender,
+		address, phone, birthplace, birthday, password,
+		nickname, email,
+		age,photo,
+		registerDate
+		FROM
+		user
+		WHERE
+		id = #{id}
+	</select>
+	<select id="selectUserById2" resultType="User">
+		SELECT
+		id, name, gender,
+		address, phone, birthplace, birthday, password,
+		nickname, email,
+		age,validataCode, registerDate
+		FROM
+		user
+		WHERE
+		id = #{id}
+	</select>
+
+	<select id="selectUserByPhone" resultType="User">
+		SELECT
+		id, name,age,
+		gender,photo,
+		address, phone, birthplace, birthday, password,
+		nickname,
+		email,registerDate
+		FROM
+		user
+		WHERE
+		phone = #{phone}
+	</select>
+	<select id="selectUserByEmail" resultType="User">
+		SELECT
+		id, name,
+		gender,
+		address, phone, birthplace, birthday, password,
+		nickname, email
+		FROM
+		user
+		WHERE
+		email = #{email}
+	</select>
+	<!--根据年龄升序查询 -->
+	<select id="getPageUserOrderByAge" parameterType="org.lanqiao.bank.base.util.PageUtil"
+		resultMap="basicUserMap">
+		select * from user order by age limit #{begin},#{offset}
+	</select>
+	<!--根据年龄降序查询 -->
+	<select id="getPageUserOrderByAgeDesc" parameterType="org.lanqiao.bank.base.util.PageUtil"
+		resultMap="basicUserMap">
+		select * from user order by age desc limit
+		#{begin},#{offset}
+	</select>
+	<!--根据出生年月升序 -->
+	<select id="getPageUserOrderByDate" parameterType="org.lanqiao.bank.base.util.PageUtil"
+		resultMap="basicUserMap">
+		select * from user order by birthday limit
+		#{begin},#{offset}
+	</select>
+	<!--根据出生年月降序 -->
+	<select id="getPageUserOrderByDateDesc" parameterType="org.lanqiao.bank.base.util.PageUtil"
+		resultMap="basicUserMap">
+		select * from user order by birthday desc limit
+		#{begin},#{offset}
+	</select>
+	<select id="getPageUser" parameterType="org.lanqiao.bank.base.util.PageUtil"
+		resultMap="basicUserMap">
+		select * from user limit #{begin},#{offset}
+	</select>
+	<!--根据用户姓名关键字查询 -->
+	<select id="getUserLikeName" parameterType="String" resultMap="basicUserMap">
+		select * from user where name like '%${value}%'
+	</select>
+	<select id="selectAllUser" resultMap="basicUserMap">
+		SELECT
+		id, name, gender,
+		address, phone, birthplace, birthday, password,
+		nickname, email
+		FROM
+		user
+	</select>
+
+	<resultMap type="User" id="basicUserMap">
+		<id property="id" column="id" javaType="Integer"></id>
+		<result property="name" column="name" javaType="String"></result>
+		<result property="age" column="age" javaType="Integer"></result>
+		<result property="gender" column="gender" javaType="Integer"></result>
+		<result property="address" column="address" javaType="String"></result>
+		<result property="phone" column="phone" javaType="String"></result>
+		<result property="birthplace" column="birthplace" javaType="String"></result>
+		<result property="birthday" column="birthday" javaType="Date"></result>
+		<result property="password" column="password" javaType="String"></result>
+		<result property="photo" column="photo" javaType="String"></result>
+		<result property="nickname" column="nickname" javaType="String"></result>
+		<result property="email" column="email" javaType="String"></result>
+	</resultMap>
+</mapper>

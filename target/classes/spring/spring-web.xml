@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <!--配置springMVC-->
+    <mvc:interceptors>
+    	<!-- 用户验证 -->
+    	<mvc:interceptor>
+    		<mvc:mapping path="/LUser/**"/>
+    		<mvc:exclude-mapping path="/LUser/User/login"/>
+    		<mvc:exclude-mapping path="/LUser/User/vcode"/>
+    		<mvc:exclude-mapping path="/LUser/User/getcode"/>
+    		<mvc:exclude-mapping path="/LUser/Navigation/checkLogin"/>
+    		
+    		<!-- 用户注册 -->
+    		<mvc:exclude-mapping path="/LUser/User/registe_a"/>
+    		<mvc:exclude-mapping path="/LUser/User/registe_b"/>
+    		
+    		<!-- 忘记密码 -->
+    		<mvc:exclude-mapping path="/LUser/User/toreset_password"/>
+    		<mvc:exclude-mapping path="/LUser/User/i_forget_password"/>
+    		<mvc:exclude-mapping path="/LUser/User/reset_password"/>
+    		
+    		<!-- 企业访问接口 -->
+    		<mvc:exclude-mapping path="/LUser/statusIdentify/*"/>
+    		
+    		<bean class="org.lanqiao.bank.base.intercept.UserLoginInterceptor"></bean>
+    	</mvc:interceptor>
+    	
+    	<!-- 管理员验证 -->
+    	<mvc:interceptor>
+    		<mvc:mapping path="/LAdmin/**"/>
+    		<mvc:exclude-mapping path="/LAdmin/Admin/login"/>
+    		<bean class="org.lanqiao.bank.base.intercept.AdminLoginInterceptor"></bean>
+    	</mvc:interceptor>
+    	
+    	<!-- 客服验证  -->
+    	<mvc:interceptor>
+    		<mvc:mapping path="/LCustomer/**"/>
+    		<mvc:exclude-mapping path="/LCustomer/CustomerLogin/login"/>
+    		<bean class="org.lanqiao.bank.base.intercept.CustomerLoginInterceptor"></bean>
+    	</mvc:interceptor>
+    </mvc:interceptors>
+    
+    <!--1.开启springMVC注解模式-->
+    <mvc:annotation-driven>
+    	<!-- 解决Json 懒加载 -->
+    	<mvc:message-converters>
+	        <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+	            <property name="supportedMediaTypes">
+	                <list>
+	                    <value>application/json; charset=UTF-8</value>
+	                    <value>application/x-www-form-urlencoded; charset=UTF-8</value>
+	                </list>
+	            </property>
+	            <property name="objectMapper">
+	                <bean class="org.lanqiao.bank.base.entity.MyObject">
+	                </bean>
+	            </property>
+	        </bean>
+	    </mvc:message-converters>
+    </mvc:annotation-driven>
+
+    <!--2.静态资源默认servlet配置-->
+    <mvc:default-servlet-handler/>
+    
+    <!--3.配置jsp显示ViewResolver-->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>
+        <property name="prefix" value="/WEB-INF/views/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+    
+    <!-- 文件上传 -->
+    <bean class="org.springframework.web.multipart.commons.CommonsMultipartResolver" id="multipartResolver"></bean>
+
+    <!--4.扫描web相关的bean-->
+    <context:component-scan base-package="org.lanqiao.bank.controller"/>
+    <!-- 扫描aop -->
+    <context:component-scan base-package="org.lanqiao.bank.aspect"/>
+    
+   <!-- 配置邮件服务器发送邮件 -->
+    <bean id="javaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+        <property name="host" value="123.206.71.118" />
+        <property name="port" value="25" />
+        <property name="username" value="su@ifma.me" />
+        <!-- 需要授权码（写自己的） -->
+        <property name="password" value="111111" />
+        <property name="javaMailProperties">
+            <props>
+                <prop key="mail.smtp.timeout">50000</prop>
+                <prop key="mail.smtp.auth">true</prop>
+                <prop key="mail.smtp.starttls.enable">true</prop>
+                <prop key="mail.smtp.socketFactory.port">110</prop>
+                <!-- TLS使用的是普通的Socket -->
+                <!--<prop key="mail.smtp.socketFactory.class">javax.net.ssl.SSLSocketFactory</prop>-->
+                <prop key="mail.smtp.socketFactory.fallback">false</prop>
+            </props>
+        </property>
+    </bean>
+
+</beans>

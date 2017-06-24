@@ -1,0 +1,449 @@
+/**@ClassName: CardController.java 
+ * @Description: TODO
+ * @author 西安工业大学蓝桥学员-谢世旺
+ * @time 2017年4月27日 下午12:41:38  
+ */
+package org.lanqiao.bank.controller.user;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+import org.lanqiao.bank.base.dto.Pager;
+import org.lanqiao.bank.base.entity.Bank;
+import org.lanqiao.bank.base.entity.BankExample;
+import org.lanqiao.bank.base.entity.Card;
+import org.lanqiao.bank.base.entity.CardExample;
+import org.lanqiao.bank.base.entity.CardExample.Criteria;
+import org.lanqiao.bank.base.entity.CreditSaveMoney;
+import org.lanqiao.bank.base.entity.Creditrepayment;
+import org.lanqiao.bank.base.entity.Deposit;
+import org.lanqiao.bank.base.entity.DepositExample;
+import org.lanqiao.bank.base.entity.User;
+import org.lanqiao.bank.base.util.CardUtils;
+import org.lanqiao.bank.base.util.PageUtil;
+import org.lanqiao.bank.service.admin.BankService;
+import org.lanqiao.bank.service.admin.CardService;
+import org.lanqiao.bank.service.impl.user.CreditSaveMoneyServiceImpl;
+import org.lanqiao.bank.service.impl.user.CreditrepaymentDaoServiceImpl;
+import org.lanqiao.bank.service.impl.user.DepositServiceImpl;
+import org.lanqiao.bank.service.impl.user.UserServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.DigestUtils;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+/**
+ * @ClassName: CardController
+ * @Description: TODO
+ * @author 西安工业大学蓝桥学员-谢世旺
+ * @time 2017年4月27日 下午12:41:38
+ */
+@Controller
+@RequestMapping("/LUser/card_user")
+public class UserCardController {
+	@Autowired
+	private CardService cardService;
+	@Autowired
+	private BankService bankService;
+	@Autowired
+	UserServiceImpl UserServiceImpl;
+	@Autowired
+	CreditSaveMoneyServiceImpl creditSaveMoneyServiceImpl;
+	@Autowired
+	CreditrepaymentDaoServiceImpl creditrepaymentDaoServiceImpl;
+	@Autowired
+	DepositServiceImpl depositServiceImpl;
+
+	/**
+	 * @Title: userInterestRepay
+	 * @Description: 用户利息分期还款
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年5月26日 下午6:11:58
+	 * @param cardId
+	 * @param map
+	 * @return String
+	 */
+	@Transactional
+	@RequestMapping("/userInterestRepay")
+	public String userInterestRepay(@RequestParam("id") Integer id, Map<String, Object> map) {
+		Creditrepayment creditRepayment = creditrepaymentDaoServiceImpl.selectCreditRepayment(id);
+		Integer isRepay = creditRepayment.getIsRepay();
+		Integer cardId = creditRepayment.getCardId();
+		//判断记录是否为未还款（isRepay=0为未还款）
+		if(isRepay==0){
+			creditRepayment.setIsRepay(1);
+			creditRepayment.setRepayTime(new Date());
+			int i = creditrepaymentDaoServiceImpl.updateCreditRepayment(creditRepayment);
+			//判断修改表信息是否成功
+			if(i==1){
+				map.put("cardId", cardId);
+				return "user/user_creditRepayment_success";
+			}else{
+				throw  new RuntimeException();
+			}
+		}
+		map.put("cardId", cardId);
+		return "user/user_creditRepayment_faile";
+	}
+
+	/**
+	 * @Title: userDeposit
+	 * @Description: 信用卡用户存款
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年5月22日 下午8:05:09
+	 * @param cardId
+	 * @param balance
+	 * @param map
+	 * @return String
+	 */
+	@Transactional
+	@RequestMapping("/userDeposit")
+	public String userDeposit(@RequestParam("cardId") Integer cardId, @RequestParam("balance") Double balance,
+			Map<String, Object> map) {
+		Card card = cardService.selectByPrimaryKey(cardId);
+		Integer userId = card.getUserId();
+		Integer credit = card.getCredit();
+		Double balance2 = card.getBalance();
+		User user = UserServiceImpl.selectUserById(userId);
+		// 判断用户输入金额是否大于零
+		if (balance > 0) {
+			balance2 = balance2 + balance;
+			card.setBalance(balance2);
+			int i = cardService.updateByPrimaryKey(card);
+			// 判断用户信用卡数据库的金额是否进行了更新
+			if (i == 1) {
+				CreditSaveMoney creditSaveMoney = new CreditSaveMoney(new Date(), cardId, balance, 1);
+				int j = creditSaveMoneyServiceImpl.insertCreditSaveMoney(creditSaveMoney);
+				// 判断信用卡存取款数据库记录表是否进行了更新
+				if (j == 1) {
+					map.put("card", card);
+					map.put("user", user);
+					return "user/user_deposit_success";
+				} else {
+					map.put("cardId", cardId);
+					return "user/user_deposit_faile";
+				}
+			} else {
+				map.put("cardId", cardId);
+				return "user/user_deposit_faile";
+			}
+
+		} else {
+			map.put("cardId", cardId);
+			return "user/user_deposit_faile";
+		}
+	}
+
+	
+	
+	/**
+	 * @Title: toUserSave
+	 * @Description: 信用卡存款密码验证
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年5月22日 上午8:58:03
+	 * @param cardId
+	 * @param cardPassword
+	 * @param map
+	 * @return String
+	 */
+	@RequestMapping("/toUserSave")
+	public String toUserSave(@RequestParam("cardId") Integer cardId, @RequestParam("card_password") String cardPassword,
+			Map<String, Object> map) {
+		Card card = cardService.selectByPrimaryKey(cardId);
+		String password2 = DigestUtils.md5DigestAsHex(cardPassword.getBytes());
+		String password = card.getPassword();
+		if (password.equalsIgnoreCase(password2)) {
+			map.put("card", card);
+			return "user/user_deposit";
+		} else {
+			map.put("cardId", cardId);
+			return "user/user_deposit_faile";
+
+		}
+	}
+
+	/**
+	 * @Title: toUserSaveMoney
+	 * @Description: 去信用卡存款密码验证页面
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年5月22日 上午8:47:24
+	 * @param cardId
+	 * @param map
+	 * @return String
+	 */
+	@RequestMapping("/toSaveMoney")
+	public String toUserSaveMoney(@RequestParam("cardId") Integer cardId, Map<String, Object> map) {
+		System.out.println(cardId);
+		map.put("cardId", cardId);
+		return "user/set_pwd_tosave";
+	}
+
+	/**
+	 * @Title: userWithdrawals
+	 * @Description: 信用卡用户取款
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年5月21日 下午2:18:21
+	 * @param cardId
+	 * @param balance
+	 * @param map
+	 * @return String
+	 */
+	@Transactional
+	@RequestMapping("/userWithdrawals")
+	public String userWithdrawals(@RequestParam("cardId") Integer cardId, @RequestParam("balance") Double balance,
+			Map<String, Object> map) {
+		Card card = cardService.selectByPrimaryKey(cardId);
+		Integer userId = card.getUserId();
+		Integer credit = card.getCredit();
+		Double balance2 = card.getBalance();
+		User user = UserServiceImpl.selectUserById(userId);
+		// 判断取的钱数是否小于卡里的余额
+		if (balance < (balance2 + credit)) {
+			balance2 = balance2 - balance;
+			card.setBalance(balance2);
+			int i = cardService.updateByPrimaryKey(card);
+			// 判断取款后是否对数据库进行了更新
+			if (i == 1) {
+				CreditSaveMoney creditSaveMoney = new CreditSaveMoney(new Date(), cardId, balance, 0);
+				int j = creditSaveMoneyServiceImpl.insertCreditSaveMoney(creditSaveMoney);
+				// 判断是否向数据库添加了存取款记录
+				if (j == 1) {
+					map.put("card", card);
+					map.put("user", user);
+					return "user/user_withdrawals_success";
+				} else {
+					map.put("cardId", cardId);
+					return "user/user_withdrawals_faile";
+				}
+			} else {
+				map.put("cardId", cardId);
+				return "user/user_withdrawals_faile";
+			}
+
+		} else {
+
+			map.put("card", card);
+			return "user/balance_not_enough";
+		}
+
+	}
+
+	/**
+	 * @Title: toUserWithdrawals
+	 * @Description: 密码验证成功，去取款页面
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年5月21日 上午10:53:11
+	 * @param cardPassword
+	 * @param cardId
+	 * @param map
+	 * @return String
+	 */
+	@RequestMapping("/toUserWithdrawals")
+	public String toUserWithdrawals(@RequestParam("card_password") String cardPassword,
+			@RequestParam("cardId") Integer cardId, Map<String, Object> map) {
+		String pwd = DigestUtils.md5DigestAsHex(cardPassword.getBytes());
+		Card card = cardService.selectByPrimaryKey(cardId);
+		String pwd2 = card.getPassword();
+		if (pwd.equalsIgnoreCase(pwd2)) {
+			map.put("card", card);
+			return "user/user_withdrawals";
+		} else {
+			map.put("cardId", cardId);
+			return "user/user_withdrawals_faile";
+		}
+
+	}
+
+	/**
+	 * @Title: toSaveMoney
+	 * @Description: 输入密码进行验证进行存取款
+	 * @author 西安工业大学蓝桥学员-崔永雷
+	 * @time 2017年5月19日 下午8:31:32
+	 * @param map
+	 * @param cardId
+	 * @return String
+	 */
+	@RequestMapping("/totakeMoney")
+	public String toSaveMoney(Map<String, Object> map, @RequestParam("cardId") Integer cardId) {
+		map.put("cardId", cardId);
+		return "user/set_pwd_totake";
+	}
+
+	/**
+	 * @Title: prepareAddCard
+	 * @Description: 为用户添加银行卡预处理
+	 * @author 西安工业大学蓝桥学员-谢世旺
+	 * @time 2017年4月27日 下午2:33:28
+	 * @param map
+	 * @return String
+	 */
+	@RequestMapping(value = "/add", method = RequestMethod.GET)
+	public String prepareAddCard(Map<String, Object> map) {
+		List<Bank> banks = bankService.selectBanksByPagerAndCondiction(null, new BankExample());
+		map.put("banks", banks);
+		return "/user/user_add_card";
+	}
+
+	/**
+	 * @Title: getCardsByBankId
+	 * @Description: 根据银行Id获取银行卡
+	 * @author 西安工业大学蓝桥学员-谢世旺
+	 * @time 2017年4月27日 下午2:34:03
+	 * @param bankId
+	 * @return List<Card>
+	 */
+	@RequestMapping(value = "/list", method = RequestMethod.GET, produces = "application/json")
+	@ResponseBody
+	public List<Card> getCardsByBankId(Integer bankId) {
+		CardExample example = new CardExample();
+		Criteria criteria = example.createCriteria();
+		criteria.andUserIdIsNull();
+		Pager<Card> pager = new Pager<Card>();
+		pager.setCurrentPage(1);
+		pager.setRowPerPage(8);
+		List<Card> cards = cardService.selectCardsByPageAndCondiction(pager, example);
+		return cards;
+	}
+
+	/**
+	 * @Title: add
+	 * @Description: 用户申请银行卡
+	 * @author 西安工业大学蓝桥学员-高彩丽
+	 * @time 2017年5月1日 下午2:34:03
+	 * @param
+	 * @return /user/user_add_card_update
+	 * 
+	 */
+	@RequestMapping(value = "/addCard")
+	public String add(String email, String password,String password2, HttpSession session, HttpServletRequest request) {
+		if (email == "" || password == ""||password2=="") {
+			return "user/user_add_card_first";
+		} else {
+			User user = (User) session.getAttribute("user");
+			String email2 = user.getEmail();
+			String pwd = DigestUtils.md5DigestAsHex(password.getBytes());
+			if (email2.equals(email)) {
+				// System.out.println("1111");
+				String cardnumber = CardUtils.createCard();
+				Card card1 = new Card();
+				card1.setNumber(cardnumber);
+				card1.setBalance(0.0);
+				card1.setBankId(1);
+				card1.setUserId(user.getId());
+				card1.setPassword(pwd);
+				card1.setCredit(0);
+				card1.setIsCreditCard(0);
+				card1.setIsPass(0);
+				cardService.insert(card1);
+				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+				String date = df.format(new Date());
+				session.setAttribute("cardnumber", cardnumber);
+				session.setAttribute("date", date);
+				request.removeAttribute("error1");
+				return "user/user_add_card_success";
+			} else {
+				request.setAttribute("error1", "邮箱不正确！！");
+				return "user/user_add_card_first";
+			}
+		}
+	}
+
+	/**
+	 * @Title: userInfo
+	 * @Description:账户信息
+	 * @author 西安工业大学蓝桥学员-高彩丽
+	 * @time 2017年5月1日 下午2:34:03
+	 * @param
+	 * @return /user/user_myInfo
+	 * 
+	 */
+	@RequestMapping("/userInfo")
+	public String userInfo() {
+		return "/user/user_myInfo";
+	}
+
+	/**
+	 * @Title: creditrepayment
+	 * @Description: 获取到一张卡未所有的还款信息
+	 * @author 西安工业大学蓝桥学员-孙新召
+	 * @time 2017年5月24日 下午8:49:28
+	 * @param map
+	 * @param cardId
+	 * @return String
+	 */
+	@RequestMapping("/creditrepayment")
+	public String creditrepayment(Map<String, Object> map, @RequestParam("cardId") Integer cardId) {
+		// 获取所有的还款信息
+		List<Creditrepayment> selectAllCreditrepayment = creditrepaymentDaoServiceImpl.selectAllCreditrepayment(cardId);
+		// 将未还款的包装成一个集合
+		List<Creditrepayment> notCreditrepayment = new ArrayList<Creditrepayment>();
+		//将已还款包装成一个集合
+		List<Creditrepayment> creditrepayments = new ArrayList<Creditrepayment>();
+		for (Creditrepayment creditrepayment : selectAllCreditrepayment) {
+			if (creditrepayment.getIsRepay() == 0) {
+				//将未还款添加到集合中去
+				notCreditrepayment.add(creditrepayment);
+			}else {
+				//将已还款添加到集合中去
+				creditrepayments.add(creditrepayment);
+			}
+		}
+		
+		if (selectAllCreditrepayment.size() == 0) {
+			return "user/noCreditrepayment";
+		} else {
+			map.put("AllCreditrepayment", selectAllCreditrepayment);
+			map.put("Creditrepayment", creditrepayments);
+			return "user/user_creidt_repayment";
+		}
+		
+		
+	}
+	/**
+	 * @Title: viewUserDepositCardDeposit
+	 * @Description: 分页查询银行卡存取款记录
+	 * @author 西安工业大学蓝桥学员-查文彬
+	 * @time 2017年6月4日 下午4:06:59 
+	 * @param cardId
+	 * @param pageNow
+	 * @param pager
+	 * @param map
+	 * @return
+	 * String
+	 */
+	@RequestMapping("/viewDeposit")
+	public String viewUserDepositCardDeposit(@RequestParam("card_id") Integer cardId,
+			@RequestParam("pageNow") Integer pageNow, Pager<Deposit> pager, Map<String, Object> map){
+		//设置一页显示的条数
+		int size = 5;
+		DepositExample example = new DepositExample();
+		org.lanqiao.bank.base.entity.DepositExample.Criteria createCriteria = example.createCriteria();
+		createCriteria.andCardIdEqualTo(cardId);
+		//查询数据的条数
+		long count = depositServiceImpl.countByExample(example);
+		example.setOrderByClause("create_time limit "+((pageNow-1)*size)+","+size);
+		List<Deposit> deposits = depositServiceImpl.showCarditDeposits(example);
+		pager.setData(deposits);
+		pager.setCurrentPage(pageNow);
+		pager.setTotalRows((int)count);
+		pager.setTotalPages(pager.getTotalRows() % size == 0 ? pager.getTotalRows() / 5 : pager.getTotalRows() / 5 + 1);
+		//是不是首页、是不是有下一页
+		pager.setHasPrePage(pager.getCurrentPage() != 1);
+		pager.setHasNextPage(pager.getCurrentPage() != (pager.getTotalRows() % size == 0 ? pager.getTotalRows() / 5 : pager.getTotalRows() / 5 + 1));
+		map.put("cardId", cardId);
+		map.put("pager", pager);
+		System.out.println("12345678909876542123467");
+		return "user/user_creditcard_deposit";
+	}
+
+}
