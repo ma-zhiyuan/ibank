@@ -1,0 +1,58 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.lanqiao.bank.base.dao.AdminDao">
+		 
+	<insert id="insertAdmin" useGeneratedKeys="true" keyProperty="id">
+		INSERT INTO
+			admin
+		VALUES
+			(default, #{name}, #{phone}, #{password}, #{photo}, #{email})
+	</insert>
+	
+	<delete id="deleteAdminById">
+		DELETE FROM
+			user
+		WHERE
+			id = #{id}
+	</delete>
+	
+	<update id="updateAdminById">
+		UPDATE
+			admin
+		SET
+			name = #{name},
+			phone = #{phone}, 
+			password = #{password},
+			photo = #{photo},
+			email = #{email}			
+		WHERE
+			id = #{id}
+	</update>
+	
+	<select id="selectAdminById" resultMap="basicAdminMap">
+		SELECT
+			id, name, phone, password, photo, email
+		FROM
+			admin
+		WHERE
+			id = #{id}
+	</select>
+	
+	<select id="selectAdminByPhone" resultMap="basicAdminMap">
+		SELECT
+			id, name, phone, password, photo, email
+		FROM
+			admin
+		WHERE
+			phone = #{phone}
+	</select>
+	<resultMap type="Admin" id="basicAdminMap">
+		<id property="id" column="id" javaType="Integer"></id>
+		<result property="name" column="name" javaType="String"></result>
+		<result property="phone" column="phone" javaType="String"></result>
+		<result property="password" column="password" javaType="String"></result>
+		<result property="photo" column="photo" javaType="String"></result>
+		<result property="email" column="email" javaType="String"></result>
+	</resultMap>
+</mapper>

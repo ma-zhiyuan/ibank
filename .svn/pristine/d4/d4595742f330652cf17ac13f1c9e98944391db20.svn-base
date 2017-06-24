@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.lanqiao.bank.base.dao.CardDao">
+	<resultMap id="BaseResultMap" type="org.lanqiao.bank.base.entity.Card">
+		<id column="id" jdbcType="INTEGER" property="id" />
+		<result column="number" jdbcType="VARCHAR" property="number" />
+		<result column="balance" jdbcType="DOUBLE" property="balance" />
+		<result column="bank_id" jdbcType="INTEGER" property="bankId" />
+		<result column="user_id" jdbcType="INTEGER" property="userId" />
+		<result column="password" jdbcType="VARCHAR" property="password" />
+		<result column="credit" jdbcType="INTEGER" property="credit" />
+		<result column="is_credit_card" jdbcType="INTEGER" property="isCreditCard" />
+		<result column="is_pass" jdbcType="INTEGER" property="isPass" />
+		<association property="bank" column="bank_id"
+			select="org.lanqiao.bank.base.dao.BankDao.selectByPrimaryKey"></association>
+		<association property="user" column="user_id"
+			select="org.lanqiao.bank.base.dao.UserDao.selectUserById"></association>
+	</resultMap>
+	<sql id="Example_Where_Clause">
+		<where>
+			<foreach collection="oredCriteria" item="criteria" separator="or">
+				<if test="criteria.valid">
+					<trim prefix="(" prefixOverrides="and" suffix=")">
+						<foreach collection="criteria.criteria" item="criterion">
+							<choose>
+								<when test="criterion.noValue">
+									and ${criterion.condition}
+								</when>
+								<when test="criterion.singleValue">
+									and ${criterion.condition} #{criterion.value}
+								</when>
+								<when test="criterion.betweenValue">
+									and ${criterion.condition} #{criterion.value} and
+									#{criterion.secondValue}
+								</when>
+								<when test="criterion.listValue">
+									and ${criterion.condition}
+									<foreach close=")" collection="criterion.value" item="listItem"
+										open="(" separator=",">
+										#{listItem}
+									</foreach>
+								</when>
+							</choose>
+						</foreach>
+					</trim>
+				</if>
+			</foreach>
+		</where>
+	</sql>
+
+	<sql id="Example_Where_Clause2">
+		<where>
+			<if test="example != null">
+				<foreach collection="example.oredCriteria" item="criteria"
+					separator="or">
+					<if test="criteria.valid">
+						<trim prefix="(" prefixOverrides="and" suffix=")">
+							<foreach collection="criteria.criteria" item="criterion">
+								<choose>
+									<when test="criterion.noValue">
+										and ${criterion.condition}
+									</when>
+									<when test="criterion.singleValue">
+										and ${criterion.condition} #{criterion.value}
+									</when>
+									<when test="criterion.betweenValue">
+										and ${criterion.condition} #{criterion.value} and
+										#{criterion.secondValue}
+									</when>
+									<when test="criterion.listValue">
+										and ${criterion.condition}
+										<foreach close=")" collection="criterion.value" item="listItem"
+											open="(" separator=",">
+											#{listItem}
+										</foreach>
+									</when>
+								</choose>
+							</foreach>
+						</trim>
+					</if>
+				</foreach>
+			</if>
+		</where>
+	</sql>
+	<sql id="Update_By_Example_Where_Clause">
+		<where>
+			<foreach collection="example.oredCriteria" item="criteria"
+				separator="or">
+				<if test="criteria.valid">
+					<trim prefix="(" prefixOverrides="and" suffix=")">
+						<foreach collection="criteria.criteria" item="criterion">
+							<choose>
+								<when test="criterion.noValue">
+									and ${criterion.condition}
+								</when>
+								<when test="criterion.singleValue">
+									and ${criterion.condition} #{criterion.value}
+								</when>
+								<when test="criterion.betweenValue">
+									and ${criterion.condition} #{criterion.value} and
+									#{criterion.secondValue}
+								</when>
+								<when test="criterion.listValue">
+									and ${criterion.condition}
+									<foreach close=")" collection="criterion.value" item="listItem"
+										open="(" separator=",">
+										#{listItem}
+									</foreach>
+								</when>
+							</choose>
+						</foreach>
+					</trim>
+				</if>
+			</foreach>
+		</where>
+	</sql>
+	<sql id="Base_Column_List">
+		id, number, balance, bank_id, user_id, password, credit, is_credit_card,
+		is_pass
+	</sql>
+	<!-- 根据银行卡号查询卡的信息 -->
+	<select id="selCardByCardNumber" parameterType="String"
+		resultType="org.lanqiao.bank.base.entity.Card">
+		select * from card
+		where number=#{number}
+	</select>
+	<select id="selCardById" parameterType="String"
+		resultType="org.lanqiao.bank.base.entity.Card">
+		select * from card
+		where id=#{id}
+	</select>
+	<select id="selectCardById" parameterType="java.lang.Integer"
+		resultType="org.lanqiao.bank.base.entity.Card">
+		select * from card
+		where id=#{id}
+	</select>
+
+	<select id="selectByExample" resultMap="BaseResultMap">
+		select
+		<if test="example != null">
+			<if test="example.distinct">
+				distinct
+			</if>
+		</if>
+		<include refid="Base_Column_List" />
+		from card
+		<if test="_parameter != null">
+			<include refid="Example_Where_Clause2" />
+		</if>
+		<if test="example != null">
+			<if test="example.orderByClause != null">
+				order by ${example.orderByClause}
+			</if>
+		</if>
+		<if test="pager != null">
+			limit ${(pager.currentPage - 1) * pager.rowPerPage }, ${pager.rowPerPage }
+		</if>
+	</select>
+	<delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+		delete from card
+		where id = #{id,jdbcType=INTEGER}
+	</delete>
+	<delete id="deleteByExample" parameterType="org.lanqiao.bank.base.entity.CardExample">
+		delete from card
+		<if test="_parameter != null">
+			<include refid="Example_Where_Clause" />
+		</if>
+	</delete>
+	<insert id="insert" parameterType="org.lanqiao.bank.base.entity.Card">
+		<selectKey keyProperty="id" order="AFTER" resultType="java.lang.Integer">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		insert into card (number, balance, bank_id,
+		user_id, password, credit,
+		is_credit_card, is_pass)
+		values (#{number,jdbcType=VARCHAR}, #{balance,jdbcType=DOUBLE},
+		#{bankId,jdbcType=INTEGER},
+		#{userId,jdbcType=INTEGER}, #{password,jdbcType=VARCHAR}, #{credit,jdbcType=INTEGER},
+		#{isCreditCard,jdbcType=INTEGER}, #{isPass,jdbcType=INTEGER})
+	</insert>
+	<insert id="insertSelective" parameterType="org.lanqiao.bank.base.entity.Card">
+		<selectKey keyProperty="id" order="AFTER" resultType="java.lang.Integer">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		insert into card
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="number != null">
+				number,
+			</if>
+			<if test="balance != null">
+				balance,
+			</if>
+			<if test="bankId != null">
+				bank_id,
+			</if>
+			<if test="userId != null">
+				user_id,
+			</if>
+			<if test="password != null">
+				password,
+			</if>
+			<if test="credit != null">
+				credit,
+			</if>
+			<if test="isCreditCard != null">
+				is_credit_card,
+			</if>
+			<if test="isPass != null">
+				is_pass,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="number != null">
+				#{number,jdbcType=VARCHAR},
+			</if>
+			<if test="balance != null">
+				#{balance,jdbcType=DOUBLE},
+			</if>
+			<if test="bankId != null">
+				#{bankId,jdbcType=INTEGER},
+			</if>
+			<if test="userId != null">
+				#{userId,jdbcType=INTEGER},
+			</if>
+			<if test="password != null">
+				#{password,jdbcType=VARCHAR},
+			</if>
+			<if test="credit != null">
+				#{credit,jdbcType=INTEGER},
+			</if>
+			<if test="isCreditCard != null">
+				#{isCreditCard,jdbcType=INTEGER},
+			</if>
+			<if test="isPass != null">
+				#{isPass,jdbcType=INTEGER},
+			</if>
+		</trim>
+	</insert>
+	<select id="countByExample" parameterType="org.lanqiao.bank.base.entity.CardExample"
+		resultType="java.lang.Long">
+		select count(*) from card
+		<if test="_parameter != null">
+			<include refid="Example_Where_Clause" />
+		</if>
+	</select>
+	<select id="selectByPrimaryKey" parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List" />
+		from card
+		where id = #{id,jdbcType=INTEGER}
+	</select>
+	<update id="updateByExampleSelective" parameterType="map">
+		update card
+		<set>
+			<if test="record.id != null">
+				id = #{record.id,jdbcType=INTEGER},
+			</if>
+			<if test="record.number != null">
+				number = #{record.number,jdbcType=VARCHAR},
+			</if>
+			<if test="record.balance != null">
+				balance = #{record.balance,jdbcType=DOUBLE},
+			</if>
+			<if test="record.bankId != null">
+				bank_id = #{record.bankId,jdbcType=INTEGER},
+			</if>
+			<if test="record.userId != null">
+				user_id = #{record.userId,jdbcType=INTEGER},
+			</if>
+			<if test="record.password != null">
+				password = #{record.password,jdbcType=VARCHAR},
+			</if>
+			<if test="record.credit != null">
+				credit = #{record.credit,jdbcType=INTEGER},
+			</if>
+			<if test="record.isCreditCard != null">
+				is_credit_card = #{record.isCreditCard,jdbcType=INTEGER},
+			</if>
+			<if test="record.isPass != null">
+				is_pass = #{record.isPass,jdbcType=INTEGER},
+			</if>
+		</set>
+		<if test="_parameter != null">
+			<include refid="Update_By_Example_Where_Clause" />
+		</if>
+	</update>
+	<update id="updateByExample" parameterType="map">
+		update card
+		set id = #{record.id,jdbcType=INTEGER},
+		number = #{record.number,jdbcType=VARCHAR},
+		balance = #{record.balance,jdbcType=DOUBLE},
+		bank_id = #{record.bankId,jdbcType=INTEGER},
+		user_id = #{record.userId,jdbcType=INTEGER},
+		password = #{record.password,jdbcType=VARCHAR},
+		credit = #{record.credit,jdbcType=INTEGER},
+		is_credit_card = #{record.isCreditCard,jdbcType=INTEGER},
+		is_pass = #{record.isPass,jdbcType=INTEGER}
+		<if test="_parameter != null">
+			<include refid="Update_By_Example_Where_Clause" />
+		</if>
+	</update>
+	<update id="updateByPrimaryKeySelective" parameterType="org.lanqiao.bank.base.entity.Card">
+		update card
+		<set>
+			<if test="number != null">
+				number = #{number,jdbcType=VARCHAR},
+			</if>
+			<if test="balance != null">
+				balance = #{balance,jdbcType=DOUBLE},
+			</if>
+			<if test="bankId != null">
+				bank_id = #{bankId,jdbcType=INTEGER},
+			</if>
+			<if test="userId != null">
+				user_id = #{userId,jdbcType=INTEGER},
+			</if>
+			<if test="password != null">
+				password = #{password,jdbcType=VARCHAR},
+			</if>
+			<if test="credit != null">
+				credit = #{credit,jdbcType=INTEGER},
+			</if>
+			<if test="isCreditCard != null">
+				is_credit_card = #{isCreditCard,jdbcType=INTEGER},
+			</if>
+			<if test="isPass != null">
+				is_pass = #{isPass,jdbcType=INTEGER},
+			</if>
+		</set>
+		where id = #{id,jdbcType=INTEGER}
+	</update>
+	<update id="updateByPrimaryKey" parameterType="org.lanqiao.bank.base.entity.Card">
+		update card
+		set number = #{number,jdbcType=VARCHAR},
+		balance = #{balance,jdbcType=DOUBLE},
+		bank_id = #{bankId,jdbcType=INTEGER},
+		user_id = #{userId,jdbcType=INTEGER},
+		password = #{password,jdbcType=VARCHAR},
+		credit = #{credit,jdbcType=INTEGER},
+		is_credit_card = #{isCreditCard,jdbcType=INTEGER},
+		is_pass = #{isPass,jdbcType=INTEGER}
+		where id = #{id,jdbcType=INTEGER}
+	</update>
+	<select id="selectCard" resultType="org.lanqiao.bank.base.entity.Card">
+		select id,number from card where user_id = null
+	</select>
+	<select id="selectCardByUserId" parameterType="java.lang.Integer" resultType="org.lanqiao.bank.base.entity.Card">
+		select id,number from card where user_id =#{id}
+	</select>
+	<select id="getAllMoney" resultType="Double">
+		select sum(balance) from card
+	</select>
+	<update id="passCard" parameterType="integer" >
+	  update card set is_pass=1 where id=#{id}
+	</update>
+	<select id="getCardsByUserId" parameterType="java.lang.Integer"
+		resultMap="BaseResultMap">
+		select * from card where user_id=#{id}
+	</select>
+
+</mapper>

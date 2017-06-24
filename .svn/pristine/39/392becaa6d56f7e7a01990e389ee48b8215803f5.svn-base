@@ -1,0 +1,42 @@
+/* Copyright © 2016 lanqiao.org. All rights reserved. Author:zbq 2016-09-18 */
+
+/* 注册步骤样式 */
+.reg-wrapper{ padding-bottom: 50px; }
+.reg-top{ padding-bottom: 26px; border-bottom: 1px solid #dedede; }
+.reg-step-nav { width: 824px; height: 126px; margin: 0 auto; }
+.reg-step-nav li{ float: left; width: 126px; height: 126px; margin: 0 40px; background:url(../../images/sp_reg.png) no-repeat; }
+.reg-step-nav li p{ text-align: center; padding-top: 80px; color:#fff; }
+.reg-step-nav .step-a{ background-position: 0px -252px; }
+.reg-step-nav .step-b{ background-position: 0px -378px; }
+.reg-step-nav .step-c{ background-position: 0 0; }
+.reg-step-nav .step-d{ background-position:0px -126px; }
+.reg-step-nav .current{ -webkit-animation: 8.5s linear 0s normal none infinite currentStep; animation: 8.5s linear 0s normal none infinite currentStep; -moz-animation: 8.5s linear 0s normal none infinite currentStep; -o-animation: 8.5s linear 0s normal none infinite currentStep; }
+.reg-step-nav .current p{ color: #666\9; }
+.reg-inner-bd{ width: 772px; margin:50px auto 30px; }
+.reg-alert-box{padding-bottom: 0;padding-top: 50px;}
+
+/* 当前步骤动画 */
+@keyframes currentStep {
+    from{ transform: rotate(0deg); }
+	  to{ transform: rotate(360deg); }
+}
+
+@-webkit-keyframes currentStep {
+    from{ -webkit-transform: rotate(0deg); }
+	  to{ -webkit-transform: rotate(360deg); }
+}
+
+@-ms-keyframes currentStep {
+    from{ -ms-transform: rotate(0deg); }
+	  to{ -ms-transform: rotate(360deg); }
+}
+
+@-moz-keyframes currentStep {
+    from{ -moz-transform: rotate(0deg); }
+	  to{ -moz-transform: rotate(360deg); }
+}
+
+@-o-keyframes currentStep {
+    from{ -o-transform: rotate(0deg); }
+	  to{ -o-transform: rotate(360deg); }
+}

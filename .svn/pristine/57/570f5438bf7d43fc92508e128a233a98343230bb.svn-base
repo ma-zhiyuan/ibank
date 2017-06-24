@@ -1,0 +1,494 @@
+/**
+ * 
+ */
+package org.lanqiao.bank.controller.customer;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+import org.lanqiao.bank.base.dto.Pager;
+import org.lanqiao.bank.base.entity.Card;
+import org.lanqiao.bank.base.entity.CardExample;
+import org.lanqiao.bank.base.entity.CustomerReplay;
+import org.lanqiao.bank.base.entity.CustomerService;
+import org.lanqiao.bank.base.entity.UserConsultation;
+import org.lanqiao.bank.base.entity.CardExample.Criteria;
+import org.lanqiao.bank.base.util.FileConstants;
+import org.lanqiao.bank.base.util.PageUtil;
+import org.lanqiao.bank.base.util.UUIDUtils;
+import org.lanqiao.bank.service.admin.CardService;
+import org.lanqiao.bank.service.customer.CustomerReplayService;
+import org.lanqiao.bank.service.impl.admin.CardServiceImpl;
+import org.lanqiao.bank.service.impl.customer.CustomerServiceServiceImpl;
+import org.lanqiao.bank.service.impl.user.UserConsultationServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.util.DigestUtils;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+
+/**
+ * @ClassName: CustomerServiceController
+ * @Description: 客服控制层
+ * @author 西安工业大学蓝桥学员-刘晓莉
+ * @time 2017年4月24日 下午7:34:00
+ */
+@Controller
+@RequestMapping("/LCustomer/CService")
+public class CustomerServiceController {
+	@Autowired
+	CardServiceImpl cardServiceImpl ;
+	@Autowired
+	private CardService cardService;
+	@Autowired
+	CustomerServiceServiceImpl customerServiceServiceImpl;
+	@Autowired
+	UserConsultationServiceImpl userConsultationServiceImpl ;
+	
+	/**
+	 * 注入到容器
+	 * 修改人：苏杰
+	 */
+	@Autowired
+	private CustomerReplayService customerReplayService;
+	
+	@ModelAttribute
+	public void getModel(@RequestParam(value = "no", required = false) Integer no, Map<String, Object> map)
+			throws ParseException {
+		if (no != null) {
+			CustomerService cs = customerServiceServiceImpl.selCusServiceByNo(no);
+			map.put("cService", cs);
+		} else {
+			CustomerService cs = new CustomerService();
+			map.put("cService", cs);
+		}
+	}
+
+	/**
+	 * @Title: updateMyInfo
+	 * @Description: 客服修改自己信息
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年5月6日 下午5:44:16
+	 * @param customerService
+	 * @param map
+	 * @return String
+	 */
+	@RequestMapping("/updateMyInfo")
+	public String updateMyInfo( @RequestParam("photo1") MultipartFile file,CustomerService customerService, 
+			Map<String, Object> map, HttpServletRequest request) {
+		Integer no =customerService.getNo();
+		if (!file.isEmpty()) {
+			try {
+				// 文件保存路径
+				String filePath = request.getSession().getServletContext().getRealPath("/")
+						+ FileConstants.CUSTOMER_UPLOAD_PATH + System.currentTimeMillis() + file.getOriginalFilename();
+				String filename=System.currentTimeMillis() + file.getOriginalFilename();
+				// 转存文件
+				file.transferTo(new File(filePath));
+				if (customerService != null) {
+					// 给cusServices赋photo值
+					customerService.setPhoto(filename);
+					int updateCusService = customerServiceServiceImpl.updateCusService(customerService);
+					map.put("no", no);
+					return "customer/updateMyInfo_success";
+				}
+			} catch (IllegalStateException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		map.put("no", no);
+		return "customer/updateMyInfo_faile";
+
+	}
+
+	/**
+	 * @Title: updateMyInfo
+	 * @Description: 客服去修改自己信息页面
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年5月6日 下午5:15:29
+	 * @param customerService
+	 * @return String
+	 */
+	@RequestMapping("/toupdateMyInfo")
+	public String toupdateMyInfo(CustomerService customerService, Map<String, Object> map) {
+		Integer no = customerService.getNo();
+		CustomerService selCusServiceByNo = customerServiceServiceImpl.selCusServiceByNo(no);
+		map.put("cService", selCusServiceByNo);
+		return "customer/updateMyInfo";
+	}
+
+	/**
+	 * @Title: showMyInfo
+	 * @Description: 客服查看自己基本信息
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年5月6日 下午4:47:16
+	 * @param no
+	 * @param map
+	 * @return String
+	 */
+	@RequestMapping("/showMyInfo")
+	public String showMyInfo(@RequestParam(value = "no") Integer no, Map<String, Object> map) {
+		CustomerService cusservice = customerServiceServiceImpl.selCusServiceByNo(no);
+		map.put("cuService", cusservice);
+		return "customer/showCSInfo";
+	}
+
+	/**
+	 * @Title: updateCServiceInfo
+	 * @Description: 管理员修改客服信息
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年4月26日 下午8:18:11
+	 * @param cService7
+	 * @return String
+	 */
+	@RequestMapping("/updateCServiceInfo")
+	public String updateCServiceInfo(HttpServletRequest request) {
+		// 获取表单中的数据
+		int no = Integer.parseInt(request.getParameter("no"));
+		String name = request.getParameter("name");
+		int gender = Integer.parseInt(request.getParameter("Sex"));
+		int age = Integer.parseInt(request.getParameter("age"));
+		String phone = request.getParameter("phone");
+		String email = request.getParameter("email");
+
+		CustomerService cs = customerServiceServiceImpl.selCusServiceByNo(no);
+
+		cs.setName(name);
+		cs.setGender(gender);
+		cs.setAge(age);
+		cs.setPhone(phone);
+		cs.setEmail(email);
+
+		int service = customerServiceServiceImpl.updateCusService(cs);
+
+		if (service == 1) {
+			return "admin/ad_updateCS_success";
+		} else {
+			return "admin/updateCS_faile";
+		}
+	}
+
+	/**
+	 * @Title: toupdateCS
+	 * @Description: 跳转到管理员修改客服信息页面
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年4月26日 下午8:07:18
+	 * @return String
+	 */
+	@RequestMapping("/toupdateCS")
+	public String toupdateCS() {
+		return "admin/updateCService";
+	}
+
+	/**
+	 * @Title: selectAllCusService
+	 * @Description: 查询所有客服
+	 * @author 西安工业大学蓝桥学员-魏航
+	 * @time 2017年4月26日 下午6:09:45
+	 * @return String
+	 */
+	@RequestMapping("/selectAllCusService")
+	public String selectAllCusService(Map<String, Object> map, @RequestParam(value = "pageNow") Integer pageNow) {
+		PageUtil format = PageUtil.format(pageNow, 5);
+		List pageCusService = customerServiceServiceImpl.getPageCusService(format);
+		List<CustomerService> allCusService = customerServiceServiceImpl.selAllCusService();
+		Pager<CustomerService> pager = new Pager<CustomerService>(pageNow, format.getOffset(), allCusService.size(),
+				pageCusService);
+		map.put("cServicePage", pager);
+		return "admin/cusServicelist";
+	}
+
+	/**
+	 * @Title: insertCustomerService
+	 * @Description: 删除一个客服
+	 * @author 西安工业大学蓝桥学员-刘晓莉
+	 * @time 2017年4月24日 下午8:22:02
+	 * @param no
+	 * @return int
+	 */
+	@RequestMapping("/deleteCusServiceByNo")
+	public String deleteCusServiceByNo(int no) {
+		customerServiceServiceImpl.deleteCustomerServiceByNo(no);
+		return "admin/delCS_success";
+	}
+
+	/**
+	 * @Title: selectOneCusService
+	 * @Description: 管理员查询一个客服的详细信息
+	 * @author 西安工业大学蓝桥学员-刘晓莉
+	 * @time 2017年4月26日 下午6:46:43
+	 * @return String
+	 */
+	@RequestMapping("/selectOneCusServiceByNo")
+	public String selectOneCusServiceById(@RequestParam(value = "no") Integer no, Map<String, Object> map) {
+		CustomerService cusservice = customerServiceServiceImpl.selCusServiceByNo(no);
+		map.put("cusservice", cusservice);
+		return "customer/cusService";
+	}
+
+	/**
+	 * @Title: insertCustomerService
+	 * @Description: 增加一个客服
+	 * @author 西安工业大学蓝桥学员-刘晓莉
+	 * @time 2017年4月24日 下午8:22:02
+	 * @param customerService
+	 * @return String
+	 */
+	@RequestMapping("/insertCustomerService")
+	public String insertCustomerService(CustomerService customerService, @RequestParam("profile") MultipartFile file,
+			HttpServletRequest request) {
+		// 密码二次加密
+		customerService.setPassword(DigestUtils.md5DigestAsHex(customerService.getPassword().getBytes()));
+		// 客服状态
+		customerService.setState(0); // 0为未激活状态 ，1为激活状态
+		// 设置激活码
+		String code = UUIDUtils.getUUID() + UUIDUtils.getUUID();
+		customerService.setCode(code);
+		System.out.println(customerService);
+		if (!file.isEmpty()) {
+			try {
+				// 文件保存路径
+				String filePath = request.getSession().getServletContext().getRealPath("/")
+						+ FileConstants.CUSTOMER_UPLOAD_PATH + System.currentTimeMillis() + file.getOriginalFilename();
+				// 转存文件
+				file.transferTo(new File(filePath));
+				if (customerService != null) {
+					// 给cusServices赋photo值
+					customerService.setPhoto(filePath);
+					int i = customerServiceServiceImpl.insertCustomerService(customerService);
+				}
+				request.setAttribute("msg", "您已注册成功，请前往邮箱激活");
+				return "customer/ctivation_prompt";
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		// 失败重新填写表单信息
+		return "customer/cusSevice_register";
+	}
+
+	/**
+	 * @Title: emailVerification
+	 * @Description: 邮箱验证
+	 * @author 西安工业大学蓝桥学员-孙新召
+	 * @time 2017年5月6日 下午5:55:46
+	 * @param request
+	 * @return String
+	 */
+	@RequestMapping("/emailVerification")
+	public String emailVerification(HttpServletRequest request) {
+		// 获取到激活码
+		String code = request.getParameter("code");
+		// 通过激活码获取到客服对象
+		CustomerService cs = customerServiceServiceImpl.selSusServiceByCode(code);
+		// 修改客服激活状态并将激活码置为空
+		cs.setState(1);
+		cs.setCode("");
+		System.out.println(cs);
+		// 修改数据库中的客服数据
+		int i = customerServiceServiceImpl.updateCusService(cs);
+		if (i > 0) {
+			return "customer/customer_index";
+		}
+		return "admin/registerCS_faile";
+	}
+
+	/**
+	 * @Title: customerExit
+	 * @Description: 客服退出登陆
+	 * @author 西安工业大学蓝桥学员-张文龙
+	 * @time 2017年5月7日 下午5:19:21
+	 * @param session
+	 * @return String
+	 */
+	@RequestMapping("/customerExit")
+	public String customerExit(HttpSession session) {
+		session.removeAttribute("customer");
+		return "redirect:/customer_login.jsp";
+	}
+	
+	/**
+	 * @Title: UserConsultation
+	 * @Description: 查看用户未回复的咨询
+	 * @author 西安工业大学蓝桥学员-孙新召
+	 * @time 2017年5月14日 上午9:13:54 
+	 * @param customerService
+	 * @param pageNow
+	 * @param map
+	 * @return
+	 * String
+	 */
+	@RequestMapping("/UserConsultation")
+	public String UserConsultation(HttpSession session,@RequestParam(value = "pageNow") Integer pageNow,Map<String, Object> map){
+		CustomerService customerService = (CustomerService)session.getAttribute("customer");
+		//判断客服是否为空
+		if(customerService!=null){
+			PageUtil pageUtil =PageUtil.format(pageNow, 10);
+			//获取数据
+			List userConSultation = userConsultationServiceImpl.getUserConSultationReplaystate(pageUtil);
+			List<UserConsultation> allUserConSultationReplaystate = userConsultationServiceImpl.getAllUserConSultationReplaystate();
+			int notReplaySize = allUserConSultationReplaystate.size();
+			map.put("userConSultation", userConSultation);
+			Pager<CustomerReplay> pager = new Pager<CustomerReplay>(pageNow, pageUtil.getOffset(), allUserConSultationReplaystate.size(),userConSultation);
+			map.put("cServicePage", pager);
+
+			//将未回复的信息条数返回到页面
+			session.setAttribute("notReplaySize",notReplaySize );
+			return "/customer/userConSultation_notReplay";
+		//客服为空返回到登录页面
+		}else {
+			return "/customer/customer_login";
+		}
+		
+	}
+	
+	/**
+	 * @Title: replayConsultation
+	 * @Description: 返回到回复的页面
+	 * @author 西安工业大学蓝桥学员-孙新召
+	 * @time 2017年5月14日 下午10:03:03 
+	 * @return
+	 * String
+	 */
+	@RequestMapping("/replayConsultation")
+	public String replayConsultation(@RequestParam(value = "id") Integer id,Map<String, Object> map){
+		UserConsultation userConSultation = userConsultationServiceImpl.getUserConSultationById(id);
+		map.put("userConSultation",userConSultation);
+		return "/customer/replayConsultation";
+	}
+	
+	/**
+	 * @Title: replay
+	 * @Description: 回复信息
+	 * @author 西安工业大学蓝桥学员-孙新召
+	 * @time 2017年5月14日 下午10:08:39 
+	 * @param session
+	 * @param pageNow
+	 * @param map
+	 * @return
+	 * String
+	 */
+	@RequestMapping("/replay")
+	public String replay(HttpSession session,Map<String, Object> map,HttpServletRequest request,@RequestParam(value = "id") Integer id){
+		CustomerService customerService = (CustomerService)session.getAttribute("customer");
+		String replay = request.getParameter("replay");
+		if(customerService!=null){
+			//通过ID获取用户咨询
+			UserConsultation userConsultation = userConsultationServiceImpl.getUserConSultationById(id);
+			//穿件回复队形
+			CustomerReplay customerReplay  = new CustomerReplay(customerService, replay, userConsultation, new Date());
+			//添加回复对象到数据库
+			System.out.println(customerReplay);
+			
+			int insertCustomerReplay = customerReplayService.insertCustomerReplay(customerReplay);
+			//判断是否插入数据库
+			if(insertCustomerReplay>0){
+				//数据库已经插入回复信息，更新咨询的回复状态
+				userConsultation.setReplaystate(1);
+				userConsultationServiceImpl.updateUserConsultation(userConsultation);
+				String msg = "回复成功";
+				map.put("msg", msg);
+				return "/customer/replayResult";
+			}else {
+				String msg = "回复失败";
+				map.put("msg", msg);
+				return "/customer/replayResult";
+			}
+		//没有客服返回到登录页面
+		}else {
+			return "/customer/customer_login";
+		}
+	}
+	/**@Title: listCards
+		 * @Description: 客户查看所有卡并操作
+		 * @author 西安工业大学蓝桥学员-崔永雷
+		 * @time  2017年5月22日 下午8:17:23
+		 * @param   number
+		 * @param   left
+		 * @param   right
+		 * @param    orderByClause
+		 * @param   pager
+		 * @param    map
+		 * @param   
+		 * @return String
+		 *  
+		 */
+	@RequestMapping(value="list", method=RequestMethod.GET)
+	public String listCards(@RequestParam(value="number", required=false)String number, 
+			@RequestParam(value="left", required=false)String left, 
+		@RequestParam(value="right", required=false)String right, 
+		@RequestParam(value="orderByClause", required=false)String orderByClause, Pager<Card> pager, Map<String, Object> map) {
+		int size = 5;
+		if(pager.getCurrentPage() == null || pager.getCurrentPage() < 1) {
+			pager.setCurrentPage(1);
+		}
+		String order = orderByClause;
+		CardExample example = new CardExample();
+		if(orderByClause != null) {
+			if(orderByClause.equals("1")) {
+				orderByClause = " balance desc";
+			}else {
+				if(orderByClause.equals("2")) {
+					orderByClause = " balance";
+				}
+			}
+			if(!orderByClause.equals("0")) {
+				example.setOrderByClause(orderByClause);
+			}
+		}
+		pager.setRowPerPage(5);
+		Criteria criteria = example.createCriteria();
+		if(number != null && number.length() != 0) {
+			criteria.andNumberLike("%" + number + "%");
+		}
+		if(left != null && right != null && left.length() != 0 && right .length() != 0) {
+			criteria.andBalanceBetween(Double.parseDouble(left), Double.parseDouble(right));
+		}else {
+			if((left == null || left.length() == 0) && right != null && right.length() != 0) {
+				criteria.andBalanceLessThanOrEqualTo(Double.parseDouble(right));
+			}else {
+				if(left != null && left.length() != 0 && (right == null || right.length() == 0)) {
+					criteria.andBalanceLessThanOrEqualTo(Double.parseDouble(left));
+				}
+			}
+		}
+		List<Card> cards = cardService.selectCardsByPageAndCondiction(pager, example);
+		long count = cardService.countByExample(example);
+		pager.setData(cards);
+		pager.setTotalRows((int)count);
+		pager.setTotalPages(pager.getTotalRows() % size == 0 ? pager.getTotalRows() / 5 : pager.getTotalRows() / 5 + 1);
+		pager.setHasNextPage(pager.getCurrentPage() != 1);
+		pager.setHasNextPage(pager.getCurrentPage() != count);
+		map.put("pager", pager);
+		map.put("number", number);
+		map.put("left", left);
+		map.put("right", right);
+		map.put("orderByClause", Integer.parseInt(order == null ? "0" : order));
+		return "/customer/customer_manager_allCard";
+	}
+	/**@Title: cardPass
+		 * @Description: 客服通过一张银行卡的注册
+		 * @author 西安工业大学蓝桥学员-崔永雷
+		 * @time  2017年5月22日 下午8:40:54
+		 * @param   id
+		 * @return String
+		 *  
+		 */
+	@RequestMapping("/takeCardPass")
+	public String cardPass(@RequestParam(value="id",required=false)Integer id){
+		Integer passCard = cardServiceImpl.passCard(id);
+		return "redirect:list";
+	}
+}

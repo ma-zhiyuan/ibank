@@ -1,0 +1,683 @@
+package org.lanqiao.bank.controller.user;
+
+import java.io.File;
+import java.io.IOException;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.lanqiao.bank.base.entity.Card;
+import org.lanqiao.bank.base.entity.User;
+import org.lanqiao.bank.base.util.CommonConstants;
+import org.lanqiao.bank.base.util.CommonUtil;
+import org.lanqiao.bank.base.util.FileConstants;
+import org.lanqiao.bank.base.util.ValidateCode;
+import org.lanqiao.bank.service.impl.admin.CardServiceImpl;
+import org.lanqiao.bank.service.impl.user.UserServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Controller;
+import org.springframework.util.DigestUtils;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
+
+/**
+ * @ClassName: UseHandler
+ * @Description: 用户控制层
+ * @author 西安工业大学蓝桥学员-王泽华
+ * @time 2017年4月21日 下午10:41:07
+ */
+@Controller
+@RequestMapping("/LUser/User")
+public class UserController {
+	@Autowired
+	private UserServiceImpl userServiceImpl;
+	@Autowired
+	private JavaMailSender sender;
+	@Autowired
+	CardServiceImpl cardServiceImpl;
+
+	/**
+	 * @Title: getModel
+	 * @Description: 初始化，
+	 * @author 西安工业大学蓝桥学员-王泽华
+	 * @time 2017年4月22日 下午8:20:19
+	 * @param id
+	 * @param map
+	 * 
+	 */
+	@ModelAttribute
+	public void getModel(@RequestParam(value = "id", required = false) Integer id, Map<String, Object> map) {
+		if (!"".equals(id) && id != null) {
+			User u = userServiceImpl.selectUserById(id);
+			map.put("user", u);
+		} else {
+			// 初始化
+			User user = new User();
+			map.put("user", user);
+		}
+	}
+
+	/**
+	 * @Title: regist
+	 * @Description: 去表单进行注册
+	 * @author 西安工业大学蓝桥学员-王泽华
+	 * @time 2017年4月22日 下午11:04:31
+	 * @return String
+	 */
+	@RequestMapping("/toRegist")
+	public String regist() {
+		return "user/user_registe_a";
+	}
+/**
+ * @Title: getUserByPhone
+ * @Description: 查看手机号是否已被注册
+ * @author 西安工业大学蓝桥学员-王泽华
+ * @time 2017年6月4日 下午4:06:47 
+ * @param user_phone
+ * @param request
+ * @param response
+ * @throws ServletException
+ * @throws IOException
+ * void
+ */
+	@RequestMapping(value = "/getUserByPhone")
+	@ResponseBody
+	public void getUserByPhone(@RequestParam("user_phone") String user_phone, HttpServletRequest request,
+			HttpServletResponse response) throws ServletException, IOException {
+		User user = userServiceImpl.selectUserByPhone(user_phone);
+
+		if (user == null) {
+			response.getWriter().write("true");
+		} else {
+			response.getWriter().write("false");
+		}
+
+	}
+
+	/**
+	 * @Title: registA
+	 * @Description: 获取表单注册第一步的值，并转到第二步
+	 * @author 西安工业大学蓝桥学员-王泽华
+	 * @time 2017年4月24日 下午12:15:50
+	 * @param user
+	 * @param session
+	 * @return String
+	 */
+	@RequestMapping("/registe_a")
+	public String registA(User user, HttpSession session) {
+		System.out.println(user);
+
+		// 将第一步获取的手机号和密码放到session中
+		session.setAttribute("user", user);
+		return "user/user_registe_b";
+	}
+
+	/**
+	 * @Title: registB
+	 * @Description: 获取表单注册第二步的值，在数据库中插入User对象并转到第三步
+	 * @author 西安工业大学蓝桥学员-王泽华
+	 * @time 2017年4月24日 下午12:16:28
+	 * @param user
+	 * @param file
+	 * @param request
+	 * @return String
+	 */
+	@RequestMapping("/registe_b")
+	public ModelAndView registB(User user, @RequestParam("file") MultipartFile file, HttpServletRequest request) {
+		ModelAndView mv = new ModelAndView();
+		System.out.println("-------------");
+		System.out.println("user_b:" + user);
+		// 获取第一步的手机号和密码
+		User u = (User) request.getSession().getAttribute("user");
+		// 将第一步的手机号和密码给user
+		user.setPassword(u.getPassword());
+		user.setPhone(u.getPhone());
+		// 显示错误消息的map
+		HashMap<String, String> map = new HashMap<String, String>();
+		if (user.getName() == null) {
+			map.put("errorN", "用户名不能为空");
+
+		}
+		if (user.getAge() == null) {
+			map.put("errorA", "年龄不能为空");
+
+		}
+		if (user.getAddress() == null) {
+			map.put("errorB", "地址不能为空");
+
+		}
+		if (user.getBirthplace() == null) {
+			map.put("errorC", "出生地不能为空");
+
+		}
+		if (user.getBirthday() == null) {
+			map.put("errorD", "出生日期不能为空");
+
+		}
+		User em = userServiceImpl.selectUserByEmail(user.getEmail());
+		System.out.println("e:" + em);
+		if (em != null) {
+			map.put("errorM", "邮箱已被注册过");
+		}
+
+		if (user.getPhoto() == "" || user.getPhoto() == null) {
+			if (!file.isEmpty()) {
+				try {
+					// 文件保存路径
+					String filePath = request.getSession().getServletContext().getRealPath("/")
+							+ FileConstants.USER_UPLOAD_PATH + file.getOriginalFilename();
+					// 转存文件
+					file.transferTo(new File(filePath));
+					if (user != null) {
+						// 给user赋photo值
+						user.setPhoto(file.getOriginalFilename());
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+				}
+			} else {
+				map.put("errorE", "图片不能为空");
+			}
+
+		} else {
+		}
+
+		try {
+			int r = userServiceImpl.insertUser(user);
+			if(r==1){
+				String emailTitle = "用户确认注册";
+				String resetPassHref = "http://118.89.113.44/lanqiaobank/LUser/User/registe_d";
+				String emailContent = "请勿回复本邮件.点击下面的链接,完成注册<br/><a href=" + resetPassHref + " target='_BLANK'>点击我完成注册</a>";
+				CommonUtil.sendEmail(user.getEmail(), emailTitle, emailContent, sender);
+				// 若成功则转到表单注册第三步
+				mv.setViewName("user/user_registe_c");
+				return mv;
+			}
+
+		} catch (Exception e) {
+			map.put("errorF", "邮件发送失败,查看邮箱格式是否正确");
+		}
+		// 失败重新填写表单信息
+		mv.setViewName("user/user_registe_b");
+		mv.addObject("map", map);
+		request.getSession().setAttribute("user", user);
+		System.out.println(user);
+		return mv;
+	}
+
+	@RequestMapping("/registe_d")
+	public String registD(User user, HttpSession session) {
+	
+		return "user/user_registe_d";
+	}
+	
+	
+	/**
+	 * @Title: initBinder
+	 * @Description: TODO
+	 * @author 西安工业大学蓝桥学员-王泽华
+	 * @time 2017年4月22日 下午8:21:39
+	 * @param binder
+	 *            void
+	 */
+	@InitBinder
+	public void initBinder(WebDataBinder binder) {
+		// 表单日期设置，不设置可能异常
+		DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+		// 0需要返回的类型,1传入一个带格式的df,2允许为空
+		binder.registerCustomEditor(Date.class, new CustomDateEditor(df, true));
+		User user = (User) binder.getBindingResult().getModel().get("user");
+		if (user != null && user.getId() != null) {
+			binder.setDisallowedFields("birthday");
+
+		}
+	}
+
+	/**
+	 * @Title: getuserbyphone
+	 * @Description: 通过手机号获取用户
+	 * @author 西安工业大学蓝桥学员-王卓华
+	 * @time 2017年5月3日 下午7:32:05
+	 * @param user_phone
+	 * @param request
+	 * @param response
+	 * @throws ServletException
+	 * @throws IOException
+	 *             void
+	 */
+	@SuppressWarnings("unused")
+	@RequestMapping(value = "/getuserbyphone")
+	public void getuserbyphone(@RequestParam("user_phone") String user_phone,
+			@RequestParam("user_email") String user_email, HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		User user = userServiceImpl.selectUserByPhone(user_phone);
+		String email = user.getEmail();
+		if (user == null) {
+			response.getWriter().write("false");
+		}
+		if (!email.equalsIgnoreCase(user_email)) {
+			response.getWriter().write("false");
+		}
+	}
+
+	/**
+	 * @Title: toIndex
+	 * @Description: 去用户登录首页页面
+	 * @author 西安工业大学蓝桥学员-吴安安
+	 * @time 2017年5月28日 下午6:42:47
+	 * @return String
+	 */
+	@RequestMapping("/toIndex")
+	public String toIndex() {
+		return "user/index";
+	}
+
+	/**
+	 * @Title: login
+	 * @Description: 根据手机号，密码，和验证码登录
+	 * @author 西安工业大学蓝桥学员-王卓华
+	 * @time 2017年4月23日 上午10:56:59
+	 * @param phone
+	 * @param password
+	 * @param session
+	 * @return String
+	 */
+	@RequestMapping(value = "/login", method = RequestMethod.POST)
+	public String login(@RequestParam("phone") String phone, @RequestParam("password") String password,
+			@RequestParam("vcode") String vcode, HttpSession session,Map<String,Object > map) {
+		User user = userServiceImpl.userLogin(phone);
+		if (user == null) {
+			session.setAttribute("error2", "用户不存在，请核对后登录");
+			return "redirect:/user_login.jsp";
+		} else {
+			String pwd = user.getPassword();
+			String code = (String) session.getAttribute("code");
+			String md5DigestAsHex = DigestUtils.md5DigestAsHex(password.getBytes());
+			if (pwd.endsWith(md5DigestAsHex) && code.equalsIgnoreCase(vcode)) {
+				session.setAttribute("user", user);
+				session.removeAttribute("error2");
+				List<Card> selectCard = cardServiceImpl.selectCardByUserId(user.getId());
+				int cardNum = selectCard.size();
+				map.put("cardNum", cardNum);
+				return "user/index";
+			} else {
+				session.setAttribute("error2", "您输入的密码不正确，请重新登录");
+				return "redirect:/user_login.jsp";
+			}
+		}
+	}
+
+	/**
+	 * @Title: vcode
+	 * @Description: 获取一个新验证码
+	 * @author 西安工业大学蓝桥学员-王卓华
+	 * @time 2017年4月23日 下午5:48:33
+	 * @param reqeust
+	 * @param response
+	 * @throws ServletException
+	 * @throws IOException
+	 *             void
+	 */
+	@RequestMapping(value = "/vcode")
+	public void vcode(HttpServletRequest reqeust, HttpServletResponse response) throws ServletException, IOException {
+		// 设置响应类型
+		response.setContentType("image/jpeg");
+		// 禁用缓存
+		response.setHeader("Pragma", "no-cache");
+		response.setHeader("Cache-Control", "no-cache");
+		response.setDateHeader("Expires", 0);
+
+		HttpSession session = reqeust.getSession();
+
+		// 创建验证码对象
+		ValidateCode vCode = new ValidateCode(120, 40, 4, 100);
+		// 将验证码放到session中
+		session.setAttribute("code", vCode.getCode());
+		/*
+		 * String code = vCode.getCode(); System.out.println(code);
+		 */
+		vCode.write(response.getOutputStream());
+	}
+
+	/**
+	 * @Title: getcode
+	 * @Description: 获取验证码
+	 * @author 西安工业大学蓝桥学员-王卓华
+	 * @time 2017年4月24日 下午12:47:39
+	 * @param request
+	 * @param response
+	 * @throws ServletException
+	 * @throws IOException
+	 *             void
+	 */
+	@RequestMapping(value = "/getcode")
+	public void getcode(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		response.getWriter().write((String) request.getSession().getAttribute("code"));
+	}
+
+	/**
+	 * @Title: prepareUpdateUser
+	 * @Description: 准备更新
+	 * @author 西安工业大学蓝桥学员-谢世旺
+	 * @time 2017年4月24日 下午7:44:02
+	 * @param id
+	 * @param map
+	 * @return String
+	 */
+	// @RequestMapping(value = "/{id}/update", method = RequestMethod.GET)
+	// public String prepareUpdateUser(@PathVariable Integer id, Map<String,
+	// Object> map) {
+	// System.out.println(id);
+	// User user = userServiceImpl.selectUserById(id);
+	// map.put("user", user);
+	// map.put("birthday", DateFormatUtil.dateToString(user.getBirthday()));
+	// return "user/user_update";
+	// }
+
+	
+
+	/**
+	 * @Title: forgetPass
+	 * @Description: 给用户发送验证码
+	 * @author 西安工业大学蓝桥学员-王卓华
+	 * @time 2017年4月26日 下午12:40:37
+	 * @param request
+	 * @param user_phone
+	 * @param user_email
+	 * @return Map<String,String>
+	 */
+	@RequestMapping(value = "/i_forget_password", method = RequestMethod.POST)
+	@ResponseBody
+	public ModelAndView forgetPass(HttpServletRequest request, @RequestParam("user_phone") String user_phone,
+			@RequestParam("user_email") String user_email) {
+		User user = userServiceImpl.selectUserByPhone(user_phone);
+		ModelAndView model = new ModelAndView("error");
+		String msg = "";
+		if (user == null) { // 用户名不存在
+			msg = "用户名不存在,你不会忘记用户名了吧?";
+			model.addObject("msg", msg);
+			return model;
+		}
+		try {
+			String secretKey = String.valueOf((int) (Math.random() * 999999) + 1); // 密钥
+			Timestamp outDate = new Timestamp(System.currentTimeMillis() + 30 * 60 * 1000);// 30分钟后过期
+			user.setValidataCode(secretKey);
+			user.setRegisterDate(outDate);
+			userServiceImpl.updateUserById(user); // 保存到数据库
+			String emailTitle = "蓝桥密码找回";
+			// String path = request.getContextPath();
+			// String basePath = request.getScheme() + "://" +
+			// request.getServerName() + ":" + request.getServerPort()
+			// + path + "/";
+			String basePath = CommonConstants.SERVER_URL;
+			String resetPassHref = "http://" + basePath + "LUser/User/reset_password?secretKey=" + secretKey + "&phone="
+					+ user.getPhone();
+			String emailContent = "请勿回复本邮件.点击下面的链接,重设密码<br/><a href=" + resetPassHref + " target='_BLANK'>点击我重新设置密码</a>"
+					+ "<br/>tips:本邮件超过30分钟,链接将会失效，需要重新申请'找回密码'" + secretKey;
+			System.out.print(resetPassHref);
+			CommonUtil.sendEmail(user_email, emailTitle, emailContent, sender);
+			request.getSession().setAttribute("phone", user.getPhone());
+			model.setViewName("/user/user_forget_password_b");
+			return model;
+		} catch (Exception e) {
+			e.printStackTrace();
+			msg = "邮箱不存在？未知错误,联系管理员吧。";
+		}
+		model.addObject("msg", msg);
+		return model;
+	}
+
+	/**
+	 * @Title: tocheck
+	 * @Description: TODO
+	 * @author 西安工业大学蓝桥学员-王卓华
+	 * @time 2017年5月12日 下午8:17:00
+	 * @param secretKey
+	 * @param request
+	 *            void
+	 */
+	@RequestMapping(value = "/toreset_password", method = RequestMethod.GET)
+	public ModelAndView tocheck(@RequestParam("secretKey") String secretKey, HttpServletRequest request) {
+		String phone = (String) request.getSession().getAttribute("phone");
+		return this.checkResetLink(secretKey, phone, request);
+	}
+
+	/**
+	 * @Title: checkResetLink
+	 * @Description: 检查验证码
+	 * @author 西安工业大学蓝桥学员-王卓华
+	 * @time 2017年4月26日 下午12:45:20
+	 * @param sid
+	 * @param userID
+	 * @return ModelAndView
+	 */
+
+	@RequestMapping(value = "/reset_password", method = RequestMethod.GET)
+	public ModelAndView checkResetLink(@RequestParam("secretKey") String secretKey, @RequestParam("phone") String phone,
+			HttpServletRequest request) {
+		ModelAndView model = new ModelAndView("user/user_forget_password_b");
+		User users = userServiceImpl.selectUserByPhone(phone);
+		String msg = "";
+		if (users == null) {
+			msg = "链接错误,无法找到匹配用户,请重新申请找回密码.";
+			model.addObject("msg", msg);
+			return model;
+		}
+		if (secretKey.equals("")) {
+			msg = "链接不完整,请重新生成";
+			model.addObject("msg", msg);
+			return model;
+		}
+		User user = userServiceImpl.selectUserById2(users.getId());
+		if (user == null) {
+			msg = "链接错误,无法找到匹配用户,请重新申请找回密码.";
+			model.addObject("msg", msg);
+			return model;
+		}
+		Timestamp outDate = user.getRegisterDate();
+		if (outDate.getTime() <= System.currentTimeMillis()) { // 表示已经过期
+			msg = "验证码已经过期,请重新申请找回密码.";
+			model.addObject("msg", msg);
+			return model;
+		}
+		String key = user.getValidataCode(); // 数字签名
+		if (!key.equals(secretKey)) {
+			msg = "验证码不正确,是否已经过期了?重新申请吧";
+			model.addObject("msg", msg);
+			return model;
+		}
+		request.getSession().setAttribute("userID", user.getId().toString());
+		model.setViewName("/user/user_forget_password_c"); // 返回到修改密码的界面
+		return model;
+	}
+	
+	
+	
+	
+	
+
+	/**
+	 * @Title: update_password
+	 * @Description: 修改密码
+	 * @author 西安工业大学蓝桥学员-王卓华
+	 * @time 2017年4月26日 下午12:45:41
+	 * @param id
+	 * @param pwd1
+	 * @return String
+	 */
+	@RequestMapping(value = "/update_password", method = RequestMethod.POST)
+	public String update_password(HttpServletRequest request, @RequestParam("pwd1") String pwd1) {
+		String userID = (String) request.getSession().getAttribute("userID");
+		User user = userServiceImpl.selectUserById2(Integer.parseInt(userID));
+		String pwd = DigestUtils.md5DigestAsHex(pwd1.getBytes());
+		user.setValidataCode("");
+		user.setPassword(pwd);
+		userServiceImpl.updateUserById(user);
+		return "user/user_forget_password_d";
+	}
+
+	/**
+	 * @Title:showAUserAllCard
+	 * @Description: 显示一个用户的全部银行卡
+	 * @author 西安工业大学蓝桥学员-崔永雷
+	 * @time 2017.4.26
+	 * @param session
+	 *            map
+	 * @return string
+	 */
+@RequestMapping("/showAUserAllCard")
+	public String showAUserAllCard(HttpSession session, Map<String, Object> map) {
+		User user = (User) session.getAttribute("user");
+		// 测试是否可以获取到相应的aUserAllCard,上面的user需要登陆放入session中可以使用
+		/*
+		 * User user=new User("aa", 11, 1, "北京", "18309999999", "北京", new
+		 * Date(), "132456", "111111", "伟大的", "1830999@qq.com");
+		 */
+		/* user.setId(6); */
+		List<Card> aUserAllCard = userServiceImpl.getAUserAllCard(user);
+		//将信用卡和普通卡区分开来
+		List<Card> cards  = new ArrayList<Card>(); //普通卡
+		List<Card> creditcards  = new ArrayList<Card>(); //信用卡
+		for (Card card : aUserAllCard) {
+			if (card.getIsCreditCard()==1) {
+				creditcards.add(card);
+			}else {
+				cards.add(card);
+			}
+		}
+		map.put("cardNum", aUserAllCard.size());
+		map.put("cards", cards);
+		map.put("creditcards", creditcards);
+		return "user/user_all_bank_card";
+
+	}
+
+	/**
+	 * @Title: showMyInfo
+	 * @Description: 获取一个用户的信息
+	 * @author 西安工业大学蓝桥学员-张文龙
+	 * @time 2017年5月6日 上午10:53:07
+	 * @param id
+	 * @param map
+	 * @return String
+	 */
+	@RequestMapping(value = "/myinfo", method = RequestMethod.GET)
+	public String showMyInfo(HttpSession session) {
+		Object user = session.getAttribute("user");
+		User u = (User) user;
+		System.out.println("u");
+		return "user/user_myInfo";
+	}
+	/**
+	 * @Title: updateUser
+	 * @Description: 进行用户信息更新
+	 * @author 西安工业大学蓝桥学员-高彩丽
+	 * @time 2017年4月24日 下午7:44:05
+	 * @param user
+	 * @return String
+	 */
+	@RequestMapping(value = "/{id}/update")
+	public String updateUser(User user, HttpSession session, MultipartFile file, HttpServletRequest request) {
+		String name = user.getName();
+		Integer age = user.getAge();
+		String address = user.getAddress();
+		String phone = user.getPhone();
+		String nickname = user.getNickname();
+		String email = user.getEmail();
+		String password = user.getPassword();
+		if (file != null) {
+			// 文件保存路径
+			String filePath = request.getSession().getServletContext().getRealPath("/") + FileConstants.USER_UPLOAD_PATH
+					+ file.getOriginalFilename();
+			// 转存文件
+			try {
+				file.transferTo(new File(filePath));
+				user.setPhoto(file.getOriginalFilename());
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} else {
+		}
+		if (name.equals("") || age.equals(0) || address.equals("") || phone.equals("") || nickname.equals("")
+				|| email.equals("")) {
+			return "/user/user_update";
+		} else {
+//			User user1 = (User) request.getSession().getAttribute("user");
+//			if (!user1.getPassword().endsWith(password)) {
+//				String pwd = DigestUtils.md5DigestAsHex(password.getBytes());
+//				user.setPassword(pwd);
+//			} else {
+//				user.setPassword(password);
+//			}
+			userServiceImpl.updateUserById(user);
+			return "/user/update_user_success";
+		}
+	}
+
+	/**
+	 * @Title: updatePassword
+	 * @Description: 修改密码
+	 * @author 西安工业大学蓝桥学员-高彩丽
+	 * @time 2017年5月8日 下午7:47:40
+	 * @return String
+	 * @throws IOException
+	 */
+	@RequestMapping("/updatePassword")
+	public String updatePassword(Integer id,String password,String password1,String password2, HttpServletRequest request, HttpSession session)
+			throws IOException {
+		User user = userServiceImpl.selectUserById(id);
+            if(password.equals("")||password1.equals("")||password2.equals("")){
+            	return "user/update_user_password";
+            }else if(user!=null){
+                	String password3 = user.getPassword();
+                	String pwd = DigestUtils.md5DigestAsHex(password.getBytes());
+                	String pwd1 = DigestUtils.md5DigestAsHex(password1.getBytes());
+                	String pwd2 = DigestUtils.md5DigestAsHex(password2.getBytes());
+                	if(!pwd.equals(password3)){
+                		request.setAttribute("error", "原密码不正确！请重新填写！");
+                		return "user/update_user_password";
+                	}else if(pwd1.equals(pwd2)){
+                		user.setPassword(pwd1);
+                		userServiceImpl.updateUserById(user);
+                		request.removeAttribute("error");
+                		return "user/update_user_success";
+                	}
+            }	
+        	return "user/update_user_password";
+	}
+	/**
+	 * @Title: showMyInfo
+	 * @Description: 更新用户后显示界面
+	 * @author 西安工业大学蓝桥学员-高彩丽
+	 * @time 2017年5月6日 上午10:53:07
+	 * @param id
+	 * @param map
+	 * @return user/user_myInfo2
+	 * 
+	 */
+	@RequestMapping(value = "/myinfo2", method = RequestMethod.GET)
+	public String showMyInfo2() {
+		return "user/user_myInfo2";
+	}
+}

@@ -1,0 +1,298 @@
+package org.lanqiao.bank.controller.customer;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+import org.lanqiao.bank.base.entity.Card;
+import org.lanqiao.bank.base.entity.LoanInfo;
+import org.lanqiao.bank.base.entity.LoanInfoExample;
+import org.lanqiao.bank.base.entity.User;
+import org.lanqiao.bank.base.util.CardUtils;
+import org.lanqiao.bank.service.impl.admin.CardServiceImpl;
+import org.lanqiao.bank.service.impl.loan.LoanInfoServiceImpl;
+import org.lanqiao.bank.service.impl.loan.LoanServiceImpl;
+import org.lanqiao.bank.service.impl.user.UserServiceImpl;
+import org.lanqiao.bank.service.loan.LoanInfoService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.util.DigestUtils;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+@Controller
+@RequestMapping("/LCustomer/BCustomer")
+public class CustomerBusinessContronller {
+	@Autowired
+	UserServiceImpl userServiceImpl;
+	/**
+	 * @Title: selectUser
+	 * @Description: 客服在添加银行卡之前查询是否由此用户
+	 * @author 西安工业大学蓝桥学员-姚亚萍
+	 * @time 2017年5月7日 下午4:07:02 
+	 * @param phone
+	 * @param pwd
+	 * @param request
+	 * @return
+	 * String
+	 */
+	@RequestMapping("/selectUser")
+	public String selectUser(@RequestParam("phone") String phone, @RequestParam("password") 
+	String pwd,HttpServletRequest request ){
+		User user = userServiceImpl.selectUserByPhone(phone);
+		if(user!=null){
+			//查询密码是否正确，正确就setAttribute
+			if(user.getPassword().equals(DigestUtils.md5DigestAsHex(pwd.getBytes()))){
+				request.setAttribute("user", user);
+				request.removeAttribute("error");
+				return "customer/customer_add_card";
+			}
+		}
+		request.setAttribute("error", "error");
+		return "customer/customer_add_card";
+	}
+	
+	
+	@Autowired
+	CardServiceImpl cardServiceImpl; 
+	/**
+	 * @Title: addNewCard
+	 * @Description: 客服添加新的银行卡
+	 * @author 西安工业大学蓝桥学员-姚亚萍
+	 * @time 2017年5月7日 下午5:37:36 
+	 * @param bankid  选择的银行
+	 * @param phone   用户的电话
+	 * @param cardid  
+	 * @param balance
+	 * @param cardPassword
+	 * @param request
+	 * @return
+	 * String
+	 */
+	@RequestMapping("/addNewCard")
+	public String addNewCard(@RequestParam("phone") String phone,@RequestParam("cardNumber") String cardNumber,
+			@RequestParam("balance") Double balance,@RequestParam("cardPassword") String cardPassword,HttpServletRequest request){
+		User user = userServiceImpl.selectUserByPhone(phone);
+		if(user!=null){
+			Card card = new Card();
+			card.setUserId(user.getId());
+			card.setBankId(1);
+			card.setBalance(balance);
+			card.setPassword(cardPassword);
+			card.setNumber(cardNumber);
+			int i = cardServiceImpl.insert(card);
+			request.setAttribute("card", card);
+			
+			if(i==1){
+				request.setAttribute("card", card);
+				request.removeAttribute("error");
+				return "customer/insertCS_success";
+			}else{
+				request.setAttribute("error", "error");
+				return "customer/customer_add_card";
+			}
+		}else{
+			request.setAttribute("error", "error");
+			return "customer/customer_add_card";
+		}
+	}
+	
+	@Autowired
+	LoanInfoService loanInfoService;
+	@RequestMapping("/loan")
+	public void loan(LoanInfo loaninfo,Map<Object, String> map){
+			int i  = loanInfoService.insert(loaninfo);
+		
+	}
+	
+	
+	/**
+	 * @Title: userlogin
+	 * @Description: 用户登录
+	 * @author 西安工业大学蓝桥学员-高彩丽
+	 * @time 2017年5月22日 下午5:37:36 
+	 * @return
+	 * String
+	 */
+	@RequestMapping("userlogin")
+	public String userlogin(){
+		return "customer/user_login";
+	}
+	@RequestMapping("/userlogin2")
+	public String userlogin2(){
+		return "customer/customer_add_card";
+	}
+	/**
+	 * @Title: userloan
+	 * @Description: 用户贷款页面
+	 * @author 西安工业大学蓝桥学员-高彩丽
+	 * @time 2017年5月22日 下午5:37:36 
+	 * @param name  
+	 * @param password
+	 * @param session
+	 * @return
+	 * String
+	 */
+	@RequestMapping("/userloan")
+	public String userloan(String name,String password,HttpSession session,HttpServletRequest request){
+		User user = userServiceImpl.seletUserByName(name);
+			if(user!=null){
+				Integer id = user.getId();
+				List<Card> card = cardServiceImpl.getCardsByUserId(id);
+				String pwd = DigestUtils.md5DigestAsHex(password.getBytes());
+				String password2 = user.getPassword();
+				request.removeAttribute("error1");
+				if(pwd.equals(password2)){
+				    session.setAttribute("user", user);
+				    session.setAttribute("card", card);
+				    request.removeAttribute("error");
+				    return "customer/user_loan";
+				}
+				else{
+					request.setAttribute("error", "密码错误，请重新填写！");
+				return "customer/user_login";
+			}
+			}else{
+				request.setAttribute("error1","用户不存在，请重新填写！");
+				return "customer/user_login";
+			}
+	}
+	
+		/**
+		 * @Title: registCreditCard
+		 * @Description: 跳转到输入用户信息的页面
+		 * @author 西安工业大学蓝桥学员-孙新召
+		 * @time 2017年5月21日 上午11:52:24 
+		 * @return
+		 * String
+		 */
+		@RequestMapping("/registCreditCard")
+		public String registCreditCard(){
+			return "customer/customer_credit_card";
+		}
+		
+		/**
+		-	 * @Title: VerificationUser
+		-	 * @Description: 返回查询的用户的信息
+		-	 * @author 西安工业大学蓝桥学员-孙新召
+		-	 * @time 2017年5月21日 下午12:00:33 
+		-	 * @param phone
+		-	 * @param request
+		-	 * @return
+		-	 * String
+		-	 */
+			@RequestMapping("/VerificationUser")
+			public String  VerificationUser(@RequestParam("phone") String phone,HttpServletRequest request,Map<String, Object> map){
+				//通过电话获取用户，判断是不是有这个用户
+				User user = userServiceImpl.selectUserByPhone(phone);
+				//如果用户存在，返回到填写信用卡信息的页面
+				if(user!=null){
+					//通过用户ID获取到用户的卡
+					List<Card> cardsByUserId = cardServiceImpl.getCardsByUserId(user.getId());
+					int state = 0;//判断银行卡是不是信用卡
+					for (Card card : cardsByUserId) {
+						if(card.getIsCreditCard()==1) {
+							state = 1;
+						}
+					}
+					//如果没有信用卡，则跳转到创建信用卡的页面
+					if(state==0) {
+						map.put("user", user);
+						return "customer/customer_registered_credit_cardtwo";
+					//如果已经有了信用卡，则将信息返回到页面
+					} else {
+						String msg = "已经存在信用卡，不能再次申请。" ;
+						map.put("msg", msg);
+						return "customer/credit_card_state";
+					}
+				//如果用户不存在，返回到用户注册的页面
+				}else {
+					String msg = "该用户不存在，请先注册用户。" ;
+					map.put("msg", msg);
+					return "customer/credit_card_state";
+				}
+			}
+			/**
+			 * @Title: addcreditcard
+		-	 * @Description: 添加信用卡到数据库
+		-	 * @author 西安工业大学蓝桥学员-孙新召
+		-	 * @time 2017年5月21日 下午2:58:02 
+		-	 * @param userid
+		-	 * @param balance
+		-	 * @param password
+		-	 * @return
+		-	 * String
+		-	 */
+			@RequestMapping("/addcreditcard")
+			public String addcreditcard(Map<String, Object> map,@RequestParam("userid") Integer userid,@RequestParam("balance") Double balance,@RequestParam("password") String password){
+				System.out.println(userid);
+				System.out.println(balance);
+				System.out.println(password);
+				String psw = DigestUtils.md5DigestAsHex(password.getBytes());
+				//获取用户信息
+				User user = userServiceImpl.selectUserById(userid);
+				System.out.println(user);
+				//创建卡号
+				String createCard = CardUtils.createCard();
+				System.out.println(createCard);
+				//创建卡的对象
+				Card card = new Card();
+				//为卡对象赋值
+				card.setNumber(createCard);
+				card.setBalance(balance);
+				card.setBankId(1);
+				card.setUserId(userid);
+				card.setIsCreditCard(1);
+				card.setPassword(psw);
+				card.setCredit(0);
+				card.setIsPass(0);
+				//添加操作
+				int insert = cardServiceImpl.insert(card);
+				if(insert>0) {
+					//添加成功，返回提示成功
+					String msg = "添加信用卡成功";
+					map.put("msg", msg);
+					return "customer/credit_card_state";
+				}else {
+					//添加失败，返回提示失败
+					String msg = "添加信用卡失败";
+					map.put("msg", msg);
+					return "customer/credit_card_state";
+				}
+			}
+			/**
+			 * @Title: checkUser
+		-	 * @Description: 客服查看用户的贷款信息的用户登录
+		-	 * @author 西安工业大学蓝桥学员-高彩丽
+		-	 * @time 2017年06月01日 下午2:58:02 
+		-	 * @param name
+		-	 * @param session
+		-	 * @param request
+		-	 * @return
+		-	 * String
+		-	 */
+			@Autowired
+			LoanInfoServiceImpl loanInfoServiceImpl;
+	        @RequestMapping("/checkUser")
+			public String checkUser(String name,HttpSession session,HttpServletRequest request){
+	        	if(name.equals("")){
+	        		return "customer/customer_look_user_loan";
+	        	}else{
+	        		User user = userServiceImpl.seletUserByName(name);
+	        		if(user!=null){
+	        			session.setAttribute("user", user);
+	        			request.removeAttribute("error1");
+	        			List<LoanInfo> userLoanInfo = loanInfoServiceImpl.selectByUserId(user.getId());
+	        			request.setAttribute("userLoanInfo", userLoanInfo);
+	        			return "customer/customer_look_user_loan2";
+	        		}else{
+		        		request.setAttribute("error1", "不存在此用户，请重新填写！！！");
+		        		return "customer/customer_look_user_loan";
+		        	}
+	        	}
+	        	
+	        	
+	       }
+}

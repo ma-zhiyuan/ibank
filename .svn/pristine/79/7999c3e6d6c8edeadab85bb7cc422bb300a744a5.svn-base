@@ -1,0 +1,133 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<style>
+	.card-items{width:420px;height:500px;overflow:auto;}
+</style>
+<script type="text/javascript" src="${basepath }/resources/user/js/jquery.js"></script>
+<script type="text/javascript">
+	
+
+	$(function() {
+		$.get('/lanqiaobank/LUser/User/getUserBanks', {}, function(data) {
+			for (var i = 0; i < data.length; i++) {
+				var cnumber = data[i].number;
+				var user=data[i].user.name;
+				var phone=data[i].user.phone;
+				var balance=data[i].balance;
+				var cid=data[i].id;
+				
+				$("#l" + i).show();
+				$("#l" + i+"-num").text(cnumber);
+				$("#l" + i+"-user").text("户名:"+user);
+				$("#l" + i+"-phone").text("手机号:"+phone);
+				$("#l"+i+"-balance").text("￥"+balance);
+				$("#l"+i+"-cid").text(cid);
+			}
+		})
+	})
+</script>
+
+
+<ul class="card-items" >
+	<li id="l0" class="card-x" style="DISPLAY:none">
+		<div class="card-layout card-top">
+			<div class="card-col-l">
+				<div class="bank-ico bank-ccb"></div>
+			</div>
+			<a style="DISPLAY:none" id="l0-cid">1</a>
+			<p class="card-col-r card-no" id="l0-num">666</p>
+		</div>
+		<div class="card-layout card-mid">
+			账户余额: <p class="card-col-l" id="l0-balance" style="float:right;text-align:right">111111</p>
+			<div class="card-col-r">
+				<a class="card-opt card-opt-hide" href="javascript:;"></a> <a
+					class="card-opt" href="uc.html"></a>
+			</div>
+		</div>
+		<div class="card-layout card-btm clearfix">
+			<div class="card-col-l">
+				<p id="l0-user">户名:某某某</p>
+				<p id="l0-phone">手机:123456789</p>
+			</div>
+			<div class="card-col-r">
+				<a class="card-opt" href="javascript:;"></a>
+			</div>
+		</div>
+	</li>
+	<li id="l1" class="card-x" style="DISPLAY:none">
+		<div class="card-layout card-top">
+			<div class="card-col-l">
+				<div class="bank-ico bank-ccb"></div>
+			</div>
+			<a style="DISPLAY:none" id="l1-cid">1</a>
+			<p class="card-col-r card-no" id="l1-num">666</p>
+		</div>
+		<div class="card-layout card-mid">
+			账户余额:<p class="card-col-l" id="l1-balance" style="float:right;text-align:right">111111111</p>
+			<div class="card-col-r">
+				<a class="card-opt card-opt-hide" href="javascript:;"></a> <a
+					class="card-opt" href="uc.html"></a>
+			</div>
+		</div>
+		<div class="card-layout card-btm clearfix">
+			<div class="card-col-l">
+				<p id="l1-user">户名:某某某</p>
+				<p id="l1-phone">手机:123456789</p>
+			</div>
+			<div class="card-col-r">
+				<a class="card-opt" href="javascript:;"></a>
+			</div>
+		</div>
+	</li>
+	<li id="l2" class="card-x" style="DISPLAY:none">
+		<div class="card-layout card-top">
+			<div class="card-col-l">
+				<div class="bank-ico bank-ccb"></div>
+			</div>
+			<a style="DISPLAY:none" id="l2-cid">1</a>
+			<p class="card-col-r card-no" id="l2-num">666</p>
+		</div>
+		<div class="card-layout card-mid">
+			账户余额:<p class="card-col-l" id="l2-balance" style="float:right;text-align:right">111111111</p>
+			<div class="card-col-r">
+				<a class="card-opt card-opt-hide" href="javascript:;"></a> <a
+					class="card-opt" href="uc.html"></a>
+			</div>
+		</div>
+		<div class="card-layout card-btm clearfix">
+			<div class="card-col-l">
+				<p id="l2-user">户名:某某某</p>
+				<p id="l2-phone">手机:123456789</p>
+			</div>
+			<div class="card-col-r">
+				<a class="card-opt" href="javascript:;"></a>
+			</div>
+		</div>
+	</li>
+	<li id="l3" class="card-x" style="DISPLAY:none">
+		<div class="card-layout card-top">
+			<div class="card-col-l">
+				<div class="bank-ico bank-ccb"></div>
+			</div>
+			<a style="DISPLAY:none" id="l3-cid">1</a>
+			<p class="card-col-r card-no" id="l3-num">666</p>
+		</div>
+		<div class="card-layout card-mid">
+			账户余额:<p class="card-col-l" id="l3-balance" style="float:right;text-align:right">111111111</p>
+			<div class="card-col-r">
+				<a class="card-opt card-opt-hide" href="javascript:;"></a> <a
+					class="card-opt" href="uc.html"></a>
+			</div>
+		</div>
+		<div class="card-layout card-btm clearfix">
+			<div class="card-col-l">
+				<p id="l3-user">户名:某某某</p>
+				<p id="l3-phone">手机:123456789</p>
+			</div>
+			<div class="card-col-r">
+				<a class="card-opt" href="javascript:;"></a>
+			</div>
+		</div>
+	</li>
+
+</ul>
